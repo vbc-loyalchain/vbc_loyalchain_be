@@ -5,15 +5,16 @@ import jwt from "jsonwebtoken";
 import { token } from "morgan";
 
 class AuthService {
-    register = async(address) => {
+    register = async(address, privateKey) => {
         const newUser = await create(User, {
             address,
+            privateKeyHash: privateKey
         });
         return newUser;
     }
 
     login = async (body) => {
-        const {address} = body;
+        const {address, privateKey} = body;
         let isCreated = false;
 
         let user = await getOne(User, {
@@ -21,13 +22,16 @@ class AuthService {
         });
 
         if(!user) {
-            user = await this.register(address);
+            user = await this.register(address, privateKey);
             isCreated = true;
         }
 
-        // if(!isCreated && !await user.matchPrivateKey(privateKey)){
-        //     throw new Error('Invalid credentials');
-        // }
+        if(!isCreated && !await user.matchPrivateKey(privateKey)){
+            throw {
+                statusCode: 401,
+                error: new Error('Invalid credentials')
+            };
+        }
 
         const {accessToken, refreshToken} = this.genTokens({
             id: user._id,

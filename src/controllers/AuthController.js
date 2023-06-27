@@ -25,8 +25,13 @@ class AuthController {
                 accessToken
             });
         } catch (error) {
-            res.status(401);
-            next(error)
+            if(error.statusCode === 401){
+                res.status(401);
+                next(error.error)
+            }
+            else {
+                next(error)
+            }
         }
     }
 
@@ -52,7 +57,6 @@ class AuthController {
                 accessToken: newAccessToken
             })
         } catch (error) {
-            res.status(403)
             next(error)
         }
     }

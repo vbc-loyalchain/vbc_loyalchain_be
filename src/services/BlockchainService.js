@@ -1,34 +1,32 @@
 import Web3 from "web3";
-import {Transaction as Tx} from '@ethereumjs/tx'
-import {Common, Hardfork} from '@ethereumjs/common'
+import { Transaction as Tx } from '@ethereumjs/tx';
+import { Common, Hardfork } from "@ethereumjs/common";
 import { FeeMarketEIP1559Transaction } from "@ethereumjs/tx";
 
 export default class BlockchainService {
     WEB3;
     chainId;
-    SCA;
     gasPrice;
-    ABI;
     maxFeePerGas;
 
-    constructor(RPC, chainId, SCA, ABI, gasBasePrice) {
+    constructor(RPC, chainId, gasBasePrice) {
         this.WEB3 = new Web3(
             new Web3.providers.HttpProvider(RPC)
         );
         this.chainId = chainId;
         this.gasPrice = gasBasePrice; 
-        this.SCA = SCA;
-        this.ABI = ABI;
         this.maxFeePerGas = gasBasePrice; 
     }
 
-    createRaw = async (funcName="", params=[], from="", value=0) => {
-      
-        const ABI = JSON.parse(JSON.stringify(this.ABI));
+    getAccount = (privateKey) => {
+        return this.WEB3.eth.accounts.privateKeyToAccount(privateKey);
+    }
+
+    createRaw = async (ABI, SCA, funcName="", params=[], from="", value=0) => {
 
         const contractDeployed = new this.WEB3.eth.Contract(
-            ABI,
-            this.SCA
+            JSON.parse(JSON.stringify(ABI)),
+            SCA
         );
 
         const dataFunc = contractDeployed.methods[funcName](
@@ -43,7 +41,7 @@ export default class BlockchainService {
 
         const rawTx = {
             from,
-            to: this.SCA,
+            to: SCA,
             gasLimit,
             gasPrice: this.gasPrice,
             nonce: nonce,
@@ -74,12 +72,11 @@ export default class BlockchainService {
         return baseFeePerGas;
     }
 
-    createRawEIP1559 = async (funcName="", params=[], from="", value=0, maxPriorityFeePerGas="0x01") => {
-        const ABI = JSON.parse(JSON.stringify(this.ABI));
+    createRawEIP1559 = async (ABI, SCA, funcName="", params=[], from="", value=0, maxPriorityFeePerGas="0x01") => {
 
         const contractDeployed = new this.WEB3.Contract(
-            ABI, 
-            this.SCA
+            JSON.parse(JSON.stringify(ABI)),
+            SCA
         );
 
         const dataFunc = contractDeployed.methods[funcName](
@@ -92,7 +89,7 @@ export default class BlockchainService {
 
         const rawTx = {
             from,
-            to: this.SCA,
+            to: SCA,
             gasLimit,
             maxPriorityFeePerGas,
             maxFeePerGas: this.maxFeePerGas,
@@ -121,10 +118,9 @@ export default class BlockchainService {
         return signedTx;
    }
 
-    createRawDeploySC = async (bytecode="", params=[],from="",value=0) => {
-        const ABI = JSON.parse(JSON.stringify(this.ABI));
+    createRawDeploySC = async (ABI, bytecode="", params=[], from="",value=0) => {
 
-        let contract = new this.WEB3.eth.Contract(ABI);
+        let contract = new this.WEB3.eth.Contract(JSON.parse(JSON.stringify(ABI)));
 
         const data = contract.deploy({
             data: bytecode,
@@ -140,12 +136,44 @@ export default class BlockchainService {
 
         const rawTx = {
             from, 
-            to: "0x0000000000000000000000000000000000000000",
+            //to: "0x0000000000000000000000000000000000000000",
             nonce: this.WEB3.utils.toHex(nonce),
             gasLimit: this.WEB3.utils.toHex(gasLimit),
             gasPrice: this.WEB3.utils.toHex(this.gasPrice),
             data,
             value: this.WEB3.utils.toHex(value)
+        };
+
+        return rawTx;
+    }
+
+    createRawDeploySCEIP1559 = async (ABI, bytecode="", params=[], from="",value=0, maxPriorityFeePerGas="0x01") => {
+
+        let contract = new this.WEB3.eth.Contract(JSON.parse(JSON.stringify(ABI)));
+
+        const data = contract.deploy({
+            data: bytecode,
+            arguments: params
+        }).encodeABI();
+
+        const gasLimit = await contract.deploy({
+            data: bytecode,
+            arguments: params
+        }).estimateGas({from});
+
+        const nonce = await this.WEB3.eth.getTransactionCount(from);
+
+        const rawTx = {
+            from, 
+            //to: "0x0000000000000000000000000000000000000000",
+            nonce: this.WEB3.utils.toHex(nonce),
+            gasLimit: this.WEB3.utils.toHex(gasLimit),
+            maxPriorityFeePerGas,
+            maxFeePerGas: this.maxFeePerGas,
+            data,
+            value: this.WEB3.utils.toHex(value),
+            type: "0x02",
+            accessList: []
         };
 
         return rawTx;
@@ -162,5 +190,30 @@ export default class BlockchainService {
     getReceipt = (txHash) => {
         const receipt = this.WEB3.eth.getTransactionReceipt(txHash);
         return receipt;
+    }
+
+    makeTransactionEIP1559 = async (ABI, SCA, funcName="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x01") => {
+        const rawTx = await this.createRawEIP1559(ABI, SCA, funcName, params, from, value, maxPriorityFeePerGas);
+
+        const signedTx = await this.signRawEIP1559(rawTx, privateKey);
+
+        const {tx} = await this.sendSignedRaw(signedTx);
+
+        return tx;
+    }
+
+    deploySC = async (ABI, bytecode="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x01") => {
+
+        // const rawTx = await this.createRawDeploySCEIP1559(ABI, bytecode, params, from, value, maxPriorityFeePerGas);
+
+        // const signedTx = await this.signRawEIP1559(rawTx, privateKey.slice(2));
+
+         const rawTx = await this.createRawDeploySC(ABI, bytecode, params, from, value);
+
+        const signedTx = await this.signRaw(rawTx, privateKey.slice(2));
+
+        const {tx} = await this.sendSignedRaw(signedTx);
+
+        return tx;
     }
 }
