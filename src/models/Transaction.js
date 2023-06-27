@@ -34,7 +34,7 @@ const transactionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['created', 'pending', 'completed'],
+        enum: ['pending', 'completed', 'canceled'],
         default: 'created',
         required: true
     }

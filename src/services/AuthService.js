@@ -2,19 +2,18 @@ import User from "../models/User";
 import { generateAccessToken, generateRefreshToken } from "../utils/token";
 import { getOne, create } from "../repositories";
 import jwt from "jsonwebtoken";
-import { token } from "morgan";
 
 class AuthService {
-    register = async(address, privateKey) => {
+    register = async(address, password) => {
         const newUser = await create(User, {
             address,
-            privateKeyHash: privateKey
+            password
         });
         return newUser;
     }
 
     login = async (body) => {
-        const {address, privateKey} = body;
+        const {address, password} = body;
         let isCreated = false;
 
         let user = await getOne(User, {
@@ -22,11 +21,11 @@ class AuthService {
         });
 
         if(!user) {
-            user = await this.register(address, privateKey);
+            user = await this.register(address, password);
             isCreated = true;
         }
 
-        if(!isCreated && !await user.matchPrivateKey(privateKey)){
+        if(!isCreated && !user.matchPassword(password)){
             throw {
                 statusCode: 401,
                 error: new Error('Invalid credentials')

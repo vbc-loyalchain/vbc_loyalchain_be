@@ -27,11 +27,17 @@ const updateEntry = async (model, filterObj, updateObj) => {
     return updatedEntry;
 }
 
+const updateEntryById = async (model, id, updateObj, option = {}) => {
+    const updatedEntry = await model.findByIdAndUpdate(id, updateObj, option);
+
+    return updatedEntry;
+}
+
 const deleteEntry = async(model, filter_obj) => {
     await model.deleteOne(filter_obj);
 }
 
 export {
-    create, getOne, getById, getAll, updateEntry, deleteEntry
+    create, getOne, getById, getAll, updateEntry, updateEntryById, deleteEntry
 }
 

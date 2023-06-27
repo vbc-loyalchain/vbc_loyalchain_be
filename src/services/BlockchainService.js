@@ -72,9 +72,9 @@ export default class BlockchainService {
         return baseFeePerGas;
     }
 
-    createRawEIP1559 = async (ABI, SCA, funcName="", params=[], from="", value=0, maxPriorityFeePerGas="0x01") => {
+    createRawEIP1559 = async (ABI, SCA, funcName="", params=[], from="", value=0, maxPriorityFeePerGas="0x00") => {
 
-        const contractDeployed = new this.WEB3.Contract(
+        const contractDeployed = new this.WEB3.eth.Contract(
             JSON.parse(JSON.stringify(ABI)),
             SCA
         );
@@ -83,9 +83,11 @@ export default class BlockchainService {
             ...params
         ).encodeABI();
 
-        const nonce = contractDeployed.methods[funcName](
+        const gasLimit = await contractDeployed.methods[funcName](
             ...params
         ).estimateGas({from});
+
+        const nonce = await this.WEB3.eth.getTransactionCount(from);
 
         const rawTx = {
             from,
@@ -147,7 +149,7 @@ export default class BlockchainService {
         return rawTx;
     }
 
-    createRawDeploySCEIP1559 = async (ABI, bytecode="", params=[], from="",value=0, maxPriorityFeePerGas="0x01") => {
+    createRawDeploySCEIP1559 = async (ABI, bytecode="", params=[], from="",value=0, maxPriorityFeePerGas="0x00") => {
 
         let contract = new this.WEB3.eth.Contract(JSON.parse(JSON.stringify(ABI)));
 
@@ -192,25 +194,34 @@ export default class BlockchainService {
         return receipt;
     }
 
-    makeTransactionEIP1559 = async (ABI, SCA, funcName="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x01") => {
+    callFunc = async (ABI, SCA, funcName="", params=[], from="") => {
+        let contract = new this.WEB3.eth.Contract(
+            JSON.parse(JSON.stringify(ABI)),
+            SCA
+        )
+
+        const value = await contract.methods[funcName](
+            ...params
+        ).call({from})
+
+        return value;
+    }
+
+    makeTransactionEIP1559 = async (ABI, SCA, funcName="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x00") => {
         const rawTx = await this.createRawEIP1559(ABI, SCA, funcName, params, from, value, maxPriorityFeePerGas);
 
-        const signedTx = await this.signRawEIP1559(rawTx, privateKey);
+        const signedTx = await this.signRawEIP1559(rawTx, privateKey.slice(2));
 
         const {tx} = await this.sendSignedRaw(signedTx);
 
         return tx;
     }
 
-    deploySC = async (ABI, bytecode="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x01") => {
+    deploySC = async (ABI, bytecode="", params=[], from="", privateKey, value=0, maxPriorityFeePerGas="0x00") => {
 
-        // const rawTx = await this.createRawDeploySCEIP1559(ABI, bytecode, params, from, value, maxPriorityFeePerGas);
+        const rawTx = await this.createRawDeploySCEIP1559(ABI, bytecode, params, from, value, maxPriorityFeePerGas);
 
-        // const signedTx = await this.signRawEIP1559(rawTx, privateKey.slice(2));
-
-         const rawTx = await this.createRawDeploySC(ABI, bytecode, params, from, value);
-
-        const signedTx = await this.signRaw(rawTx, privateKey.slice(2));
+        const signedTx = await this.signRawEIP1559(rawTx, privateKey.slice(2));
 
         const {tx} = await this.sendSignedRaw(signedTx);
 

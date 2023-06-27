@@ -14,6 +14,16 @@ class EnterpriseController {
             next(error);
         }
     }
+
+    //[GET] /api/enterprises
+    getAllEnterpriseInSystem = async (req, res, next) => {
+        try {
+            const allEnterprise = await this.eService.getAllEnterprise();
+            res.status(200).json(allEnterprise);
+        } catch (error) {
+            next(error)
+        }
+    }  
 }
 
 export default new EnterpriseController(eService)
