@@ -14,9 +14,13 @@ const getById = async (model, id) => {
     return entry_found;
 }
 
-const getAll = async (model, filterObj) => {
-    const allEntryFound = await model.find(filterObj);
+const getAll = async (model, filterObj, projection = null, options = {}) => {
+    const allEntryFound = await model.find(filterObj, projection, options);
     return allEntryFound;
+}
+
+const getAllBeforePopulate = (model, filterObj, projection = null, options = {}) => {
+    return model.find(filterObj, projection, options);
 }
 
 const updateEntry = async (model, filterObj, updateObj) => {
@@ -27,8 +31,8 @@ const updateEntry = async (model, filterObj, updateObj) => {
     return updatedEntry;
 }
 
-const updateEntryById = async (model, id, updateObj, option = {}) => {
-    const updatedEntry = await model.findByIdAndUpdate(id, updateObj, option);
+const updateEntryById = async (model, id, updateObj, options = {}) => {
+    const updatedEntry = await model.findByIdAndUpdate(id, updateObj, options);
 
     return updatedEntry;
 }
@@ -38,6 +42,6 @@ const deleteEntry = async(model, filter_obj) => {
 }
 
 export {
-    create, getOne, getById, getAll, updateEntry, updateEntryById, deleteEntry
+    create, getOne, getById, getAll, getAllBeforePopulate, updateEntry, updateEntryById, deleteEntry
 }
 

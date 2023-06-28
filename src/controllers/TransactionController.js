@@ -9,8 +9,86 @@ class TransactionController {
     }
 
     //[GET] /api/transactions/
-    getAllTransactions = (req, res, next) => {
-        return this.txService.getAllTransactions()
+    getAllExchangeTx = async (req, res, next) => {
+        const fromValueUp = parseInt(req.query.fromValueUp);
+        const fromValueDown = parseInt(req.query.fromValueDown);
+        const toValueUp = parseInt(req.query.toValueUp);
+        const toValueDown = parseInt(req.query.toValueDown);
+        const page = parseInt(req.query.page);
+        let {
+            fromTokenId,
+            toTokenId
+        } = req.query;
+
+        try {
+            if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
+                res.status(400);
+                return next(new Error('Invalid filter'));
+            }
+            
+            let allExchangeTx = await this.txService.getAllExchangeTx({
+                fromTokenId,
+                fromValueUp,
+                fromValueDown,
+
+                toTokenId,
+                toValueUp,
+                toValueDown,
+
+                page
+            });
+
+            res.status(200).json(allExchangeTx);
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    //[GET] /api/transactions/:userId
+    getMyTx = async (req, res, next) => {
+        const userId = req.params.userId;
+        if(userId !== req.user.id) {
+            res.status(403);
+            return next(new Error('Forbidden'));
+        }
+
+        const fromValueUp = parseInt(req.query.fromValueUp);
+        const fromValueDown = parseInt(req.query.fromValueDown);
+        const toValueUp = parseInt(req.query.toValueUp);
+        const toValueDown = parseInt(req.query.toValueDown);
+        const page = parseInt(req.query.page);
+        let {
+            fromTokenId,
+            toTokenId,
+            transactionType
+        } = req.query;
+
+        try {
+            if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
+                res.status(400);
+                return next(new Error('Invalid filter'));
+            }
+            
+            const myTx = await this.txService.getMyTx(
+                userId,
+                {
+                    fromTokenId,
+                    fromValueUp,
+                    fromValueDown,
+
+                    toTokenId,
+                    toValueUp,
+                    toValueDown,
+
+                    transactionType,
+                    page
+                }
+            );
+
+            res.status(200).json(myTx);
+        } catch (error) {
+            next(error)
+        }
     }
 
     //POST /api/transactions/create
@@ -31,7 +109,7 @@ class TransactionController {
             return next(new Error('Invalid transaction'));
         }
 
-        if(transactionType === 'exchange' && fromTokenId === toTokenId)  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to))  {
             res.status(400);
             return next(new Error('Invalid transaction'));
         }

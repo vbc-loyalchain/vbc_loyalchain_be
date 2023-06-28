@@ -1,13 +1,105 @@
-import {create, getById, getOne, updateEntryById} from '../repositories'
+import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
 import Token from "../models/Token";
 import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
 import User from '../models/User';
 
+const PAGE_SIZE = 15;
+
 class TransactionService {
-    getAllTransactions() {
-        return [1,2,3,4,5]
+    getAllExchangeTx = async (filter) => {
+        const {
+            fromTokenId,
+            fromValueUp,
+            fromValueDown,
+
+            toTokenId,
+            toValueUp,
+            toValueDown,
+
+            page
+        } = filter;
+
+
+        const filterQuery = {
+            'fromValue.amount': {
+                $gte: fromValueDown,
+                $lte: fromValueUp
+            },
+
+            'toValue.amount': {
+                $gte: toValueDown,
+                $lte: toValueUp
+            },
+        };
+
+        if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
+        if(toTokenId) filterQuery['toValue.token'] = toTokenId;
+
+        const options = {
+            skip: (page - 1) * PAGE_SIZE,
+            limit: PAGE_SIZE
+        };
+
+        const allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
+                                .populate('from', '-password')
+                                .populate('to', '-password')
+                                .populate('fromValue.token')
+                                .populate('toValue.token')
+
+        return allExchangeTx;
+    }
+
+    getMyTx = async (userId, filter) => {
+        const {
+            fromTokenId,
+            fromValueUp,
+            fromValueDown,
+
+            toTokenId,
+            toValueUp,
+            toValueDown,
+
+            transactionType,
+            page
+        } = filter;
+
+         const filterQuery = {
+            $or: [
+                {from: {$eq: userId}},
+                {to: {$eq: userId}},
+            ],
+            'fromValue.amount': {
+                $gte: fromValueDown,
+                $lte: fromValueUp
+            },
+
+            'toValue.amount': {
+                $gte: toValueDown,
+                $lte: toValueUp
+            },
+            transactionType: transactionType === 'all' ? {
+                $in: ['exchange', 'transfer']
+            } : transactionType
+        };
+
+        if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
+        if(toTokenId) filterQuery['toValue.token'] = toTokenId;
+
+        const options = {
+            skip: (page - 1) * PAGE_SIZE,
+            limit: PAGE_SIZE
+        };
+
+        const myTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
+                                .populate('from', '-password')
+                                .populate('to', '-password')
+                                .populate('fromValue.token')
+                                .populate('toValue.token')
+
+        return myTx;
+
     }
 
     createNewTransaction = async (body) => {
@@ -33,7 +125,7 @@ class TransactionService {
             });
         }
         
-        const newTransaction = await create(Transaction, {
+        let newTransaction = await create(Transaction, {
             from: fromUser._id,
             to: toUser ? toUser._id : null,
             fromValue: {
@@ -47,6 +139,14 @@ class TransactionService {
             transactionType,
             status: transactionType === 'transfer' ? 'completed' : 'pending'
         });
+
+        newTransaction = await newTransaction.populate('from', '-password');
+        newTransaction = await newTransaction.populate('fromValue.token');
+        newTransaction = await newTransaction.populate('toValue.token');
+
+        if(to) {
+            newTransaction = await newTransaction.populate('to', '-password')
+        }
 
         if(transactionType === 'transfer') {
             const fromToken = await getById(Token, fromTokenId);

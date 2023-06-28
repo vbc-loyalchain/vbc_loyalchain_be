@@ -1,6 +1,8 @@
 const validate_input = (Schema) => async (req, res, next) => {
     try {
-        const value = await Schema.validateAsync(req.body);
+        const method = req.method
+        const schemaToValidate = method === 'GET' ? req.query : req.body;
+        const value = await Schema.validateAsync(schemaToValidate);
         console.log(value);
         next()
     } catch (error) {
