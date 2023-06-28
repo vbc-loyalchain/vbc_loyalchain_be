@@ -1,5 +1,10 @@
 import Joi from "joi";
 
+//create a new transaction
+/**
+ * If transactionType is exchange, "to" value is null. Otherwise, "to" is address of 
+ * the receipient
+ */
 const create_tx_schema = Joi.object({
     to: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{40}$')),
 
@@ -12,6 +17,7 @@ const create_tx_schema = Joi.object({
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
 })
 
+//get all exchange transactions in the market place
 const get_exchangeTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
     fromValueUp: Joi.number().required().min(0).max(10000),
@@ -23,6 +29,7 @@ const get_exchangeTx_schema = Joi.object({
     page: Joi.number().required().min(1)
 })
 
+//get all my transactions
 const get_myTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
     fromValueUp: Joi.number().required().min(0).max(10000),
@@ -36,8 +43,14 @@ const get_myTx_schema = Joi.object({
     page: Joi.number().required().min(1)
 })
 
+//update transaction when transfer successfully
+const update_transferTxStatus_schema = Joi.object({
+    status: Joi.string().required().valid('completed', 'canceled'),
+})
+
 export {
     create_tx_schema,
     get_exchangeTx_schema,
-    get_myTx_schema
+    get_myTx_schema,
+    update_transferTxStatus_schema
 }

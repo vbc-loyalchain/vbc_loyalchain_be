@@ -65,7 +65,7 @@ class TransactionService {
             page
         } = filter;
 
-         const filterQuery = {
+        const filterQuery = {
             $or: [
                 {from: {$eq: userId}},
                 {to: {$eq: userId}},
@@ -137,7 +137,7 @@ class TransactionService {
                 amount: toValue
             },
             transactionType,
-            status: transactionType === 'transfer' ? 'completed' : 'pending'
+            status: 'pending'
         });
 
         newTransaction = await newTransaction.populate('from', '-password');
@@ -167,7 +167,7 @@ class TransactionService {
         }
     }
 
-    updateTransaction = async (txId, receipientAddress) => {
+    acceptExchangeTx = async (txId, receipientAddress) => {
         let tx = await getById(Transaction, txId);
 
         if(tx.status !== 'pending')
@@ -189,7 +189,7 @@ class TransactionService {
         }
     }
 
-    cancelTransaction = async (txId, senderAddress) => {
+    cancelExchangeTx = async (txId, senderAddress) => {
         let tx = await getById(Transaction, txId);
         tx = await tx.populate('from', '-password');
 
@@ -211,9 +211,24 @@ class TransactionService {
             new: true
         });
 
-        updatedTx = await updatedTx.populate('from', '-password')
-        updatedTx = await updatedTx.populate('toValue.token')
-        updatedTx = await updatedTx.populate('fromValue.token')
+        updatedTx = await updatedTx.populate('from', '-password');
+        updatedTx = await updatedTx.populate('toValue.token');
+        updatedTx = await updatedTx.populate('fromValue.token');
+        return updatedTx;
+    }
+
+    updateTxStatus = async (txId, status) => {
+        let updatedTx = await updateEntryById(Transaction, txId, {
+            status: status
+        }, {
+            new: true
+        })
+
+        updatedTx = await updatedTx.populate('from', '-password');
+        updatedTx = await updatedTx.populate('to', '-password');
+        updatedTx = await updatedTx.populate('toValue.token');
+        updatedTx = await updatedTx.populate('fromValue.token');
+
         return updatedTx;
     }
 

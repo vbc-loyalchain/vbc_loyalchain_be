@@ -139,11 +139,11 @@ class TransactionController {
     }
 
     //PATCH /api/transactions/accept/:txId
-    acceptTransaction = async (req, res, next) => {
+    acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
         const {address} = req.user;
         try {
-            const updatedTx = await this.txService.acceptTransaction(txId, address);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, address);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction completed'
@@ -158,12 +158,12 @@ class TransactionController {
     }
 
     //PATCH /api/transactions/cancel/:txId
-    cancelTransaction = async (req, res, next) => {
+    cancelExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
         const {address} = req.user;
 
         try {
-            const updatedTx = await this.txService.cancelTransaction(txId, address);
+            const updatedTx = await this.txService.cancelExchangeTx(txId, address);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction cancelled'
@@ -174,6 +174,26 @@ class TransactionController {
                 return next(error.error)
             }
             next(error);
+        }
+    }
+
+    ////PATCH /api/transactions//transfer/update/:txId
+    updateTransferTxStatus = async (req, res, next) => {
+        const {status} = req.body;
+        const {txId} = req.params;
+        const userId = req.user.id;
+
+        try {
+            const tx = await getById(Transaction, txId);
+            if(!tx || tx.status !== 'pending' || tx.from.toString() !== userId || tx.transactionType !== 'transfer'){
+                res.status(400);
+                return next(new Error('Invalid updation'))
+            }
+
+            const updatedTx = await this.txService.updateTxStatus(txId, status);
+            res.status(200).json(updatedTx);
+        } catch (error) {
+            next(error)
         }
     }
 }
