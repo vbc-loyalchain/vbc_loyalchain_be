@@ -32,6 +32,7 @@ class TransactionService {
                 $gte: toValueDown,
                 $lte: toValueUp
             },
+            transactionType: 'exchange'
         };
 
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
