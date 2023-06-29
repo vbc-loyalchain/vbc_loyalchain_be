@@ -1,9 +1,10 @@
 import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
 import Token from "../models/Token";
+import User from '../models/User';
 import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
-import User from '../models/User';
+import mongoose from 'mongoose';
 
 const PAGE_SIZE = 15;
 
@@ -101,6 +102,60 @@ class TransactionService {
 
         return myTx;
 
+    }
+
+    exchangeRate = async (tokenId1, tokenId2) => {
+        const query1 = Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'exchange',
+                    'fromValue.token': new mongoose.Types.ObjectId(tokenId1),
+                    'toValue.token': new mongoose.Types.ObjectId(tokenId2),
+                    status: {
+                        $in: ['pending', 'completed']
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalFrom: {
+                        $sum: "$fromValue.amount"
+                    },
+                    totalTo: {
+                        $sum: "$toValue.amount"
+                    }
+                }
+            }
+        ]).exec()
+
+        const query2 = Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'exchange',
+                    'fromValue.token': new mongoose.Types.ObjectId(tokenId2),
+                    'toValue.token': new mongoose.Types.ObjectId(tokenId1),
+                    status: {
+                        $in: ['pending', 'completed']
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalFrom: {
+                        $sum: "$fromValue.amount"
+                    },
+                    totalTo: {
+                        $sum: "$toValue.amount"
+                    }
+                }
+            }
+        ]).exec()
+
+        const [[res1], [res2]] = await Promise.all([query1, query2]);
+        const rate = ((res1 ? res1.totalFrom : 0) + (res2 ? res2.totalTo : 0)) / ((res1 ? res1.totalTo : 0) + (res2 ? res2.totalFrom : 0));
+        return Number(rate.toFixed(2));
     }
 
     createNewTransaction = async (body) => {

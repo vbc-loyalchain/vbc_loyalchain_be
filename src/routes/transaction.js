@@ -10,8 +10,16 @@ import { verifyToken } from '../middlewares/authMiddleware.js'
 
 const router = express.Router()
 
+//get all exchange transactions by filter
 router.get('/', validate_get_exchangeTx,  txController.getAllExchangeTx)
+
+//get all transactions from a user by filter
 router.get('/:userId', verifyToken, validate_get_myTx, txController.getMyTx)
+
+//get exchange rate between two token
+router.get('/rate/:tokenId1/:tokenId2', txController.getExchangeRate)
+
+//create a new transaction
 router.post('/create', verifyToken, validate_create_tx, txController.createNewTransaction)
 
 //update exchange transaction when another user accept the transaction

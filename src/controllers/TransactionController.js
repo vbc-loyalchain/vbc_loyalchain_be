@@ -91,6 +91,17 @@ class TransactionController {
         }
     }
 
+    //[GET] /api/transactions/rate/:tokenId1/:tokenId2
+    getExchangeRate = async (req, res, next) => {
+        const {tokenId1, tokenId2} = req.params;
+        try {
+            const rate = await this.txService.exchangeRate(tokenId1, tokenId2);
+            res.status(200).json(rate);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     //POST /api/transactions/create
     createNewTransaction = async (req, res, next) => {
         const {
