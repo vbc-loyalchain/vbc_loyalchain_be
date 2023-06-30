@@ -5,6 +5,6 @@ import { validate_login } from '../middlewares'
 const router = express.Router()
 
 router.post('/login', validate_login, authController.login)
-router.get('/token', authController.reGenerateToken)
+router.post('/token', authController.reGenerateToken)
 
 export default router
