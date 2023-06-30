@@ -33,7 +33,8 @@ class TransactionService {
                 $gte: toValueDown,
                 $lte: toValueUp
             },
-            transactionType: 'exchange'
+            transactionType: 'exchange',
+            status: 'pending'
         };
 
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
@@ -193,45 +194,39 @@ class TransactionService {
                 amount: toValue
             },
             transactionType,
-            status: 'pending'
+            status: transactionType === 'transfer' ? 'completed' : 'pending'
         });
 
         newTransaction = await newTransaction.populate('from', '-password');
+        newTransaction = await newTransaction.populate('to', '-password')
         newTransaction = await newTransaction.populate('fromValue.token');
         newTransaction = await newTransaction.populate('toValue.token');
 
-        if(to) {
-            newTransaction = await newTransaction.populate('to', '-password')
-        }
 
-        if(transactionType === 'transfer') {
-            const fromToken = await getById(Token, fromTokenId);
-            const provider = providers[fromToken.network];
-            const ABI = ERC20TokenContract.abi;
+        // if(transactionType === 'transfer') {
+        //     const fromToken = await getById(Token, fromTokenId);
+        //     const provider = providers[fromToken.network];
+        //     const ABI = ERC20TokenContract.abi;
 
-            // const decimals = Number(await provider.callFunc(ABI, fromToken.deployedAddress, 'decimals', [], from));
-            // const amount = BigInt(fromValue * (10 ** decimals)); 
-            const rawTx = await provider.createRawEIP1559(ABI, fromToken.deployedAddress, 'transfer', [to, BigInt(fromValue)], from)
+        //     // const decimals = Number(await provider.callFunc(ABI, fromToken.deployedAddress, 'decimals', [], from));
+        //     // const amount = BigInt(fromValue * (10 ** decimals)); 
+        //     const rawTx = await provider.createRawEIP1559(ABI, fromToken.deployedAddress, 'transfer', [to, BigInt(fromValue)], from)
 
-            return {
-                newTransaction,
-                rawTx
-            }
-        }
-        else {
-            return newTransaction;
-        }
+        //     return {
+        //         newTransaction,
+        //         rawTx
+        //     }
+        // }
+        // else {
+        //     return newTransaction;
+        // }
+
+        return newTransaction;
     }
 
     acceptExchangeTx = async (txId, receipientAddress) => {
         let tx = await getById(Transaction, txId);
-
-        if(tx.status !== 'pending')
-            throw {
-                statusCode: 400,
-                error: new Error("Can't update a transaction that has been done")
-            }
-
+        
         if(tx.to) {
             throw {
                 statusCode: 400,
@@ -261,22 +256,14 @@ class TransactionService {
                 error: new Error("Only owner can cancel this transaction")
             }
 
-        let updatedTx = await updateEntryById(Transaction, txId, {
+        const updatedTx = await this.updateTx(txId, {
             status: 'canceled'
-        }, {
-            new: true
-        });
-
-        updatedTx = await updatedTx.populate('from', '-password');
-        updatedTx = await updatedTx.populate('toValue.token');
-        updatedTx = await updatedTx.populate('fromValue.token');
+        })
         return updatedTx;
     }
 
-    updateTxStatus = async (txId, status) => {
-        let updatedTx = await updateEntryById(Transaction, txId, {
-            status: status
-        }, {
+    updateTx = async (txId, updateObj) => {
+        let updatedTx = await updateEntryById(Transaction, txId, updateObj, {
             new: true
         })
 

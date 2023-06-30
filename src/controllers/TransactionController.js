@@ -201,7 +201,7 @@ class TransactionController {
                 return next(new Error('Invalid updation'))
             }
 
-            const updatedTx = await this.txService.updateTxStatus(txId, status);
+            const updatedTx = await this.txService.updateTx(txId, {status});
             res.status(200).json(updatedTx);
         } catch (error) {
             next(error)
