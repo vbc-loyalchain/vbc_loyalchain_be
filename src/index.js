@@ -15,7 +15,9 @@ app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 app.use(morgan('combined'))
 app.use(cors({
-    origin: '*',
+    origin: [
+        'http://localhost:3000',
+    ],
     credentials: true
 }))
 app.use(cookies(process.env.COOKIE_SECRET))

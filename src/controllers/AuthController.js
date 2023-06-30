@@ -17,7 +17,9 @@ class AuthController {
 
             res.cookie(accessToken, refreshToken, {
                 httpOnly: true,
-                maxAge: 2 * 60 * 60 * 1000
+                secure: true,
+                path: '/',
+                sameSite: 'strict',
             })
 
             res.status(isCreated ? 201 : 200).json({
@@ -35,7 +37,7 @@ class AuthController {
         }
     }
 
-    //[GET] /api/auth/token
+    //[POST] /api/auth/token
     reGenerateToken = async (req, res, next) => {
         try {
             const {accessToken} = req.body;
@@ -50,7 +52,9 @@ class AuthController {
             res.clearCookie(accessToken)
             res.cookie(newAccessToken, newRefreshToken, {
                 httpOnly: true,
-                maxAge: 2 * 60 * 60 * 1000
+                secure: true,
+                path: '/',
+                sameSite: 'strict',
             })
 
             res.status(200).json({
