@@ -2,34 +2,35 @@ import User from "../models/User";
 import { generateAccessToken, generateRefreshToken } from "../utils/token";
 import { getOne, create } from "../repositories";
 import jwt from "jsonwebtoken";
+import providers from '../config/providers';
+const providerDefault = providers.MBC;
 
 class AuthService {
-    register = async(address, password) => {
+    register = async(address) => {
         const newUser = await create(User, {
-            address,
-            password
+            address
         });
         return newUser;
     }
 
     login = async (body) => {
-        const {address, password} = body;
+        const {address, signature, message} = body;
         let isCreated = false;
+
+        if(!this.verifyUser(address, message, signature)) {
+            throw {
+                statusCode: 401,
+                error: new Error('Invalid credentials')
+            };
+        }
 
         let user = await getOne(User, {
             address
         });
 
         if(!user) {
-            user = await this.register(address, password);
+            user = await this.register(address);
             isCreated = true;
-        }
-
-        if(!isCreated && !user.matchPassword(password)){
-            throw {
-                statusCode: 401,
-                error: new Error('Invalid credentials')
-            };
         }
 
         const {accessToken, refreshToken} = this.genTokens({
@@ -43,6 +44,10 @@ class AuthService {
             refreshToken,
             isCreated
         }
+    }
+
+    verifyUser = (address, message, signature) => {
+        return address === providerDefault.WEB3.eth.accounts.recover(message ,signature);
     }
 
     genTokens = (payload) => {

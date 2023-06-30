@@ -46,8 +46,8 @@ class TransactionService {
         };
 
         const allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
-                                .populate('from', '-password')
-                                .populate('to', '-password')
+                                .populate('from')
+                                .populate('to')
                                 .populate('fromValue.token')
                                 .populate('toValue.token')
 
@@ -96,8 +96,8 @@ class TransactionService {
         };
 
         const myTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
-                                .populate('from', '-password')
-                                .populate('to', '-password')
+                                .populate('from')
+                                .populate('to')
                                 .populate('fromValue.token')
                                 .populate('toValue.token')
 
@@ -197,8 +197,8 @@ class TransactionService {
             status: transactionType === 'transfer' ? 'completed' : 'pending'
         });
 
-        newTransaction = await newTransaction.populate('from', '-password');
-        newTransaction = await newTransaction.populate('to', '-password')
+        newTransaction = await newTransaction.populate('from');
+        newTransaction = await newTransaction.populate('to')
         newTransaction = await newTransaction.populate('fromValue.token');
         newTransaction = await newTransaction.populate('toValue.token');
 
@@ -242,7 +242,7 @@ class TransactionService {
 
     cancelExchangeTx = async (txId, senderAddress) => {
         let tx = await getById(Transaction, txId);
-        tx = await tx.populate('from', '-password');
+        tx = await tx.populate('from');
 
         if(tx.status !== 'pending')
             throw {
@@ -267,8 +267,8 @@ class TransactionService {
             new: true
         })
 
-        updatedTx = await updatedTx.populate('from', '-password');
-        updatedTx = await updatedTx.populate('to', '-password');
+        updatedTx = await updatedTx.populate('from');
+        updatedTx = await updatedTx.populate('to');
         updatedTx = await updatedTx.populate('toValue.token');
         updatedTx = await updatedTx.populate('fromValue.token');
 
