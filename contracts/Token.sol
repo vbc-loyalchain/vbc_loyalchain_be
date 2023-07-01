@@ -19,6 +19,11 @@ contract Token is ERC20{
         _;
     }
 
+    modifier onlyContract() {
+        require(address(msg.sender).code.length != 0, "Only contract can call this func");
+        _;
+    }
+
     function changeAdmin(address account, bool isAllowed) external onlyAdmin {
         require(account.code.length == 0, "Only EOA can be admin");
         admins[account] = isAllowed;
@@ -26,5 +31,9 @@ contract Token is ERC20{
 
     function mintToken(uint256 amount) external  onlyAdmin {
         _mint(msg.sender, amount);
+    }
+
+    function transferToBridge(address from, uint256 amount)  external {
+        _transfer(from, msg.sender, amount);
     }
 }

@@ -773,8 +773,8 @@
       ]
     },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Token.sol": {
-      "lastModificationDate": 1687801956621,
-      "contentHash": "d33298d6dc1c0be7e836253b7a931a2e",
+      "lastModificationDate": 1688189919537,
+      "contentHash": "95f66e7e6b6c3ff8bc8f454575f2cb6e",
       "sourceName": "contracts/Token.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -807,6 +807,44 @@
       ],
       "artifacts": [
         "Token"
+      ]
+    },
+    "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Bridge.sol": {
+      "lastModificationDate": 1688189942701,
+      "contentHash": "45a6be32f608a5c25ac5e185b5dd93fb",
+      "sourceName": "contracts/Bridge.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "./Token.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Bridge"
       ]
     }
   }
