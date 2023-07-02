@@ -15,7 +15,9 @@ const create_tx_schema = Joi.object({
     toTokenId: Joi.string().required(),
 
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
-    signedTxFrom: Joi.string().required()
+    timelock: Joi.number().min(0),
+    hashlock: Joi.string(),
+    signedTxFrom: Joi.string()
 })
 
 //get all exchange transactions in the market place

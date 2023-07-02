@@ -55,7 +55,7 @@ contract Bridge {
 
     function accept(string memory txId) external {
         LockContract storage exchangeTx = transactions[txId];
-        require(exchangeTx.from != address(0), "This transaction isn't exists");
+        require(exchangeTx.from != address(0), "This transaction doesn't exists");
         require(exchangeTx.completed != true && exchangeTx.refunded != true, "This transaction has been done");
         require(exchangeTx.to == address(0), "This transaction has been accepted by another user");
         require(exchangeTx.from != msg.sender, "Can't accept by your self! =))");

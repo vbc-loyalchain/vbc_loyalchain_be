@@ -8,6 +8,15 @@ class TransactionController {
         this.txService = txService;
     }
 
+    //[GET] /api/transactions/general
+    getGeneralInfo = async (req, res, next) => {
+        try {
+            res.status(200).json(await this.txService.getGeneralInfo());
+        } catch (error) {
+            next(error)
+        }
+    }
+
     //[GET] /api/transactions/
     getAllExchangeTx = async (req, res, next) => {
         const fromValueUp = parseInt(req.query.fromValueUp);
@@ -44,53 +53,6 @@ class TransactionController {
         }
     }
 
-    //[GET] /api/transactions/:userId
-    getMyTx = async (req, res, next) => {
-        const userId = req.params.userId;
-        if(userId !== req.user.id) {
-            res.status(403);
-            return next(new Error('Forbidden'));
-        }
-
-        const fromValueUp = parseInt(req.query.fromValueUp);
-        const fromValueDown = parseInt(req.query.fromValueDown);
-        const toValueUp = parseInt(req.query.toValueUp);
-        const toValueDown = parseInt(req.query.toValueDown);
-        const page = parseInt(req.query.page);
-        let {
-            fromTokenId,
-            toTokenId,
-            transactionType
-        } = req.query;
-
-        try {
-            if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
-                res.status(400);
-                return next(new Error('Invalid filter'));
-            }
-            
-            const myTx = await this.txService.getMyTx(
-                userId,
-                {
-                    fromTokenId,
-                    fromValueUp,
-                    fromValueDown,
-
-                    toTokenId,
-                    toValueUp,
-                    toValueDown,
-
-                    transactionType,
-                    page
-                }
-            );
-
-            res.status(200).json(myTx);
-        } catch (error) {
-            next(error)
-        }
-    }
-
     //[GET] /api/transactions/rate/:tokenId1/:tokenId2
     getExchangeRate = async (req, res, next) => {
         const {tokenId1, tokenId2} = req.params;
@@ -111,22 +73,27 @@ class TransactionController {
             toValue, 
             toTokenId,
             transactionType,
+            timelock,
+            hashlock,
+            signedTxFrom
         } = req.body;
 
         const {address} = req.user;
 
         if(transactionType === 'transfer' && (toValue !== 0  || fromTokenId !== toTokenId || !to)){
             res.status(400);
-            return next(new Error('Invalid transaction'));
+            return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !signedTxFrom))  {
             res.status(400);
-            return next(new Error('Invalid transaction'));
+            return next(new Error('Invalid request body for exchange transaction'));
         }
 
-        const fromToken = await getById(Token, fromTokenId);
-        const toToken = await getById(Token, fromTokenId);
+        const [fromToken, toToken] = await Promise.all([
+            getById(Token, fromTokenId),
+            getById(Token, fromTokenId)
+        ])
 
         if(!fromToken || !toToken) {
             res.status(400);
@@ -134,15 +101,25 @@ class TransactionController {
         }
 
         try {
-            const newTransaction = await this.txService.createNewTransaction({
+            let newTransaction;
+            const paramObj = {
                 from: address,
-                to,
                 fromValue,
                 fromTokenId,
                 toValue, 
                 toTokenId,
-                transactionType,
-            });
+            }
+
+            if(transactionType === 'transfer') {
+                paramObj['to'] = to;
+                newTransaction = await this.txService.createTransferTx(paramObj);
+            }
+            else{
+                paramObj['timelock'] = timelock;
+                paramObj['hashlock'] = hashlock;
+                paramObj['signedTxFrom'] = signedTxFrom;
+                newTransaction = await this.txService.createExchangeTx(paramObj);
+            }
             res.status(201).json(newTransaction);
         } catch (error) {
             next(error)

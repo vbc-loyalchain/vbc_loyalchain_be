@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\HTLC.sol": {
-      "lastModificationDate": 1687793482060,
-      "contentHash": "5ce78c8da84650ee60fc29937e655e83",
+      "lastModificationDate": 1688296424553,
+      "contentHash": "59eec2daa31d27c7690450683577bd35",
       "sourceName": "contracts/HTLC.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -29,7 +29,7 @@
         }
       },
       "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+        "./Token.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
@@ -810,8 +810,8 @@
       ]
     },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Bridge.sol": {
-      "lastModificationDate": 1688189942701,
-      "contentHash": "45a6be32f608a5c25ac5e185b5dd93fb",
+      "lastModificationDate": 1688294415180,
+      "contentHash": "41446358acde0e80c6f3bcd36802d774",
       "sourceName": "contracts/Bridge.sol",
       "solcConfig": {
         "version": "0.8.17",

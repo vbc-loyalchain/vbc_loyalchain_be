@@ -9,6 +9,29 @@ import mongoose from 'mongoose';
 const PAGE_SIZE = 15;
 
 class TransactionService {
+    getGeneralInfo = async () => {
+        const totalNow = Transaction.countDocuments({
+            transactionType: 'exchange',
+            status: 'pending'
+        });
+
+        const total24h = Transaction.countDocuments({
+            createdAt: {
+                $gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+            }
+        })
+
+        const total = Transaction.estimatedDocumentCount();
+
+        const data = await Promise.all([total, total24h, totalNow])
+
+        return {
+            total: data[0],
+            total24h: data[1],
+            totalNow: data[2]
+        }
+    }
+
     getAllExchangeTx = async (filter) => {
         const {
             fromTokenId,
@@ -52,57 +75,6 @@ class TransactionService {
                                 .populate('toValue.token')
 
         return allExchangeTx;
-    }
-
-    getMyTx = async (userId, filter) => {
-        const {
-            fromTokenId,
-            fromValueUp,
-            fromValueDown,
-
-            toTokenId,
-            toValueUp,
-            toValueDown,
-
-            transactionType,
-            page
-        } = filter;
-
-        const filterQuery = {
-            $or: [
-                {from: {$eq: userId}},
-                {to: {$eq: userId}},
-            ],
-            'fromValue.amount': {
-                $gte: fromValueDown,
-                $lte: fromValueUp
-            },
-
-            'toValue.amount': {
-                $gte: toValueDown,
-                $lte: toValueUp
-            },
-            transactionType: transactionType === 'all' ? {
-                $in: ['exchange', 'transfer']
-            } : transactionType
-        };
-
-        if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
-        if(toTokenId) filterQuery['toValue.token'] = toTokenId;
-
-        const options = {
-            skip: (page - 1) * PAGE_SIZE,
-            limit: PAGE_SIZE
-        };
-
-        const myTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
-                                .populate('from')
-                                .populate('to')
-                                .populate('fromValue.token')
-                                .populate('toValue.token')
-
-        return myTx;
-
     }
 
     exchangeRate = async (tokenId1, tokenId2) => {
@@ -159,7 +131,7 @@ class TransactionService {
         return Number(rate.toFixed(2));
     }
 
-    createNewTransaction = async (body) => {
+    createTransferTx = async (body) => {
         const {
             from, 
             to,
@@ -167,21 +139,13 @@ class TransactionService {
             fromTokenId,
             toValue, 
             toTokenId,
-            transactionType,
         } = body;
 
-        let fromUser, toUser
+        const [fromUser, toUser] = await Promise.all([
+            getOne(User, {address: from}),
+            getOne(User, {address: to})
+        ])
 
-        fromUser = await getOne(User, {
-            address: from
-        });
-
-        if(to) {
-            toUser = await getOne(User, {
-                address: to
-            });
-        }
-        
         let newTransaction = await create(Transaction, {
             from: fromUser._id,
             to: toUser ? toUser._id : null,
@@ -193,8 +157,8 @@ class TransactionService {
                 token: toTokenId,
                 amount: toValue
             },
-            transactionType,
-            status: transactionType === 'transfer' ? 'completed' : 'pending'
+            transactionType: 'transfer',
+            status: 'completed'
         });
 
         newTransaction = await newTransaction.populate('from');
@@ -202,24 +166,46 @@ class TransactionService {
         newTransaction = await newTransaction.populate('fromValue.token');
         newTransaction = await newTransaction.populate('toValue.token');
 
+        return newTransaction;
+    }
 
-        // if(transactionType === 'transfer') {
-        //     const fromToken = await getById(Token, fromTokenId);
-        //     const provider = providers[fromToken.network];
-        //     const ABI = ERC20TokenContract.abi;
+    createExchangeTx = async (body) => {
+        const {
+            from, 
+            fromValue,
+            fromTokenId,
+            toValue, 
+            toTokenId,
+            timelock,
+            hashlock,
+            signedTxFrom
+        } = body;
 
-        //     // const decimals = Number(await provider.callFunc(ABI, fromToken.deployedAddress, 'decimals', [], from));
-        //     // const amount = BigInt(fromValue * (10 ** decimals)); 
-        //     const rawTx = await provider.createRawEIP1559(ABI, fromToken.deployedAddress, 'transfer', [to, BigInt(fromValue)], from)
+        const fromUser = await getOne(User, {
+            address: from
+        });
+        
+        let newTransaction = await create(Transaction, {
+            from: fromUser._id,
+            to: null,
+            fromValue: {
+                token: fromTokenId,
+                amount: fromValue
+            },
+            toValue: {
+                token: toTokenId,
+                amount: toValue
+            },
+            transactionType: 'exchange',
+            status: 'pending',
+            timelock,
+            hashlock,
+            signedTxFrom
+        });
 
-        //     return {
-        //         newTransaction,
-        //         rawTx
-        //     }
-        // }
-        // else {
-        //     return newTransaction;
-        // }
+        newTransaction = await newTransaction.populate('from');
+        newTransaction = await newTransaction.populate('fromValue.token');
+        newTransaction = await newTransaction.populate('toValue.token');
 
         return newTransaction;
     }

@@ -3,7 +3,6 @@ import txController from '../controllers/TransactionController.js'
 import { 
     validate_create_tx, 
     validate_get_exchangeTx, 
-    validate_get_myTx,
     validate_update_transferTxStatus
 } from '../middlewares/validate_tx.js'
 import { verifyToken } from '../middlewares/authMiddleware.js'
@@ -13,8 +12,8 @@ const router = express.Router()
 //get all exchange transactions by filter
 router.get('/', validate_get_exchangeTx,  txController.getAllExchangeTx)
 
-//get all transactions from a user by filter
-router.get('/:userId', verifyToken, validate_get_myTx, txController.getMyTx)
+//get general info
+router.get('/general',  txController.getGeneralInfo)
 
 //get exchange rate between two token
 router.get('/rate/:tokenId1/:tokenId2', txController.getExchangeRate)
