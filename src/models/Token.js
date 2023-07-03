@@ -4,7 +4,7 @@ const tokenSchema = new mongoose.Schema({
     name: {type: String, required: true, unique: true},
     symbol: {type: String, required: true, unique: true},
     deployedAddress: {type: String, required: true},
-    network: {type: String, required: true, enum: ['MBC', 'AGD']},
+    network: {type: Number, required: true},
     image: {type: String}
 }, {
     timestamps: true
@@ -13,7 +13,7 @@ const tokenSchema = new mongoose.Schema({
 tokenSchema.path('name').validate(async (value) => {
     const enterpriseCount = await mongoose.models.Token.countDocuments({name: value });
     return !enterpriseCount;
-}, 'Enterprise name already exists');
+}, 'Token name already exists');
 
 tokenSchema.path('symbol').validate(async (value) => {
     const symbolCount = await mongoose.models.Token.countDocuments({symbol: value });

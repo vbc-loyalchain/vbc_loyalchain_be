@@ -6,24 +6,12 @@ import redisClient from '../config/redis';
 
 class EnterpriseService {
     createNewEnterprise = async (body) => {
-        const {name, symbol, network, image, admins, privateKey} = body;
-
-        const provider = providers[network];
-
-        const accountToDeploy = provider.getAccount(privateKey);
-
-        const {contractAddress} = await provider.deploySC(
-            ERC20TokenContract.abi,
-            ERC20TokenContract.bytecode,
-            [name, symbol, admins],
-            accountToDeploy.address,
-            privateKey
-        )
+        const {name, symbol, deployedAddress, network, image} = body;
 
         const newEnterprise= await create(Token, {
             name,
             symbol,
-            deployedAddress: contractAddress,
+            deployedAddress,
             network,
             image
         });
