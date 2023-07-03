@@ -773,8 +773,8 @@
       ]
     },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Token.sol": {
-      "lastModificationDate": 1688189919537,
-      "contentHash": "95f66e7e6b6c3ff8bc8f454575f2cb6e",
+      "lastModificationDate": 1688381710823,
+      "contentHash": "b3a6ecb88af470879a7e1a646addcecb",
       "sourceName": "contracts/Token.sol",
       "solcConfig": {
         "version": "0.8.17",

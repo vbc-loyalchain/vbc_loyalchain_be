@@ -33,7 +33,7 @@ contract Token is ERC20{
         _mint(msg.sender, amount);
     }
 
-    function transferToBridge(address from, uint256 amount)  external {
+    function transferToBridge(address from, uint256 amount) external onlyContract {
         _transfer(from, msg.sender, amount);
     }
 }
