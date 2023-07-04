@@ -1,7 +1,5 @@
 import {create, getAll} from '../repositories/crud';
 import Token from '../models/Token';
-import providers from '../config/providers'
-import {ERC20TokenContract} from '../config/contract/ERC20Token'
 import redisClient from '../config/redis';
 
 class EnterpriseService {

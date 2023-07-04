@@ -1,7 +1,7 @@
 import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
-import Token from "../models/Token";
 import User from '../models/User';
+import Token from '../models/Token';
 import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
 import mongoose from 'mongoose';
@@ -178,12 +178,20 @@ class TransactionService {
             toTokenId,
             timelock,
             hashlock,
-            signedTxFrom
+            signedTxFrom,
+            txIdFrom
         } = body;
 
-        const fromUser = await getOne(User, {
-            address: from
-        });
+        //get user to create exchange tx, get fromToken to know chainId of this one
+        const [fromUser, fromToken] = Promise.all([
+            getOne(User, {address: from}),
+            getById(Token, fromTokenId)
+        ])
+
+        //deposit amount fromValue to the contract
+        const provider = providers[fromToken.network];
+        const receipt = await provider.sendSignedRaw(signedTxFrom);
+        if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
         
         let newTransaction = await create(Transaction, {
             from: fromUser._id,
@@ -200,7 +208,8 @@ class TransactionService {
             status: 'pending',
             timelock,
             hashlock,
-            signedTxFrom
+            //signedTxFrom,
+            txIdFrom
         });
 
         newTransaction = await newTransaction.populate('from');
@@ -210,41 +219,118 @@ class TransactionService {
         return newTransaction;
     }
 
-    acceptExchangeTx = async (txId, receipientAddress) => {
+    /**
+     * @param {string} txId - Id of the transaction
+     * @param {object} receiver - request's sender (receiver)
+     * @param {string} signedTxTo - signed transaction that will be send to accept the transaction
+     * @param {string} txIdTo - Id of the transaction in the contract
+     */
+    acceptExchangeTx = async (txId, receiver, signedTxTo, txIdTo) => {
         let tx = await getById(Transaction, txId);
-        
-        if(tx.to) {
+        tx = await tx.populate('fromValue.token');
+        tx = await tx.populate('toValue.token');
+
+        //check whether this transaction has been accepted by another user
+        if(tx.status !== 'pending')
             throw {
                 statusCode: 400,
-                error: new Error("This transaction has been accepted by another user")
+                error: new Error("Can't accept a transaction that has been done")
+            }
+
+        //check whether owner address is the same as receipient address
+        if(tx.from.toString() === receiver.id) {
+            throw {
+                statusCode: 400,
+                error: new Error("Cannot accept by yourself")
             }
         }
-        else {
-            //update transaction receipient and tx status
-            //make exchange token
-            //return updated transaction
-        }
+
+        //send the accept transaction to smart contract
+        const provider = providers[tx.toValue.token.network];
+        const receipt = await provider.sendSignedRaw(signedTxTo);
+        if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
+ 
+        const updateObj = {
+            to: receiver.id,
+            status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'waiting for sender',
+            txIdTo,
+        };
+
+        const updatedTx = await this.updateTx(txId, updateObj)
+
+        return updatedTx;
     }
 
-    cancelExchangeTx = async (txId, senderAddress) => {
+    /**
+     * @param {string} txId - Id of the transaction
+     * @param {object} sender - request's sender
+     * @param {string} signedCancelTx - signed transaction that will be send to cancel the transaction
+     * @returns 
+     */
+    cancelExchangeTx = async (txId, sender, signedCancelTx) => {
         let tx = await getById(Transaction, txId);
-        tx = await tx.populate('from');
+        tx = await tx.populate('fromValue.token');
+        tx = await tx.populate('toValue.token');
 
-        if(tx.status !== 'pending')
+        let updateObj;
+
+        //check whether the transaction has been cancelled or completed
+        if(tx.status === 'completed' || tx.status === 'canceled')
             throw {
                 statusCode: 400,
                 error: new Error("Can't cancel a transaction that has been done")
             }
         
-        if(tx.from.address !== senderAddress)
+        //if status is pending, only owner can cancel this transaction
+        if(tx.status === 'pending' && tx.from.toString() !== sender.id)
             throw {
                 statusCode: 400,
                 error: new Error("Only owner can cancel this transaction")
             }
 
-        const updatedTx = await this.updateTx(txId, {
-            status: 'canceled'
-        })
+        //if status is waiting for receiver, only receiver can cancel
+        if(tx.status === 'waiting for receiver' && tx.to.toString() !== sender.id)
+            throw {
+                statusCode: 400,
+                error: new Error("Now only receiver can cancel this transaction")
+            }
+
+        //if status is waiting for sender, both receiver and owner can cancel, otherwise throw an error.
+        if( tx.status === 'waiting for sender' && 
+            tx.from.toString() !== sender.id && 
+            tx.to.toString() !== sender.id) {
+            throw {
+                statusCode: 400,
+                error: new Error("Don't have permission to cancel this transaction")
+            }
+        }
+        
+        if(tx.from.toString() === sender.id) {
+            updateObj = {
+                status: 'canceled',
+            }
+            //send the cancel transaction to smart contract
+            const provider = providers[tx.fromValue.token.network];
+            const receipt = await provider.sendSignedRaw(signedCancelTx);
+            if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
+        }
+        else {
+            updateObj = tx.status === 'waiting for receiver' ? {
+                status: 'canceled'
+            } : {
+                to: null,
+                status: 'pending',
+                //signedTxTo: null,
+                txIdTo: null,
+            }
+
+            const provider = providers[tx.toValue.token.network];
+            const receipt = await provider.sendSignedRaw(signedCancelTx);
+            if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
+        }
+                   
+        const updatedTx = await this.updateTx(txId, updateObj)
+
         return updatedTx;
     }
 

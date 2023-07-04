@@ -75,7 +75,8 @@ class TransactionController {
             transactionType,
             timelock,
             hashlock,
-            signedTxFrom
+            signedTxFrom,
+            txIdFrom
         } = req.body;
 
         const {address} = req.user;
@@ -118,6 +119,7 @@ class TransactionController {
                 paramObj['timelock'] = timelock;
                 paramObj['hashlock'] = hashlock;
                 paramObj['signedTxFrom'] = signedTxFrom;
+                paramObj['txIdFrom'] = txIdFrom;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);
@@ -126,12 +128,12 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/accept/:txId
+    //PATCH /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {address} = req.user;
+        const {signedTxTo, txIdTo} = req.body;
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, address);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, req.user, signedTxTo, txIdTo);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction completed'
@@ -145,13 +147,13 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/cancel/:txId
+    //PATCH /api/transactions/:txId/cancel
     cancelExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {address} = req.user;
+        const {signedCancelTx} = req.body;
 
         try {
-            const updatedTx = await this.txService.cancelExchangeTx(txId, address);
+            const updatedTx = await this.txService.cancelExchangeTx(txId, req.user, signedCancelTx);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction cancelled'
@@ -165,23 +167,19 @@ class TransactionController {
         }
     }
 
-    ////PATCH /api/transactions//transfer/update/:txId
-    updateTransferTxStatus = async (req, res, next) => {
-        const {status} = req.body;
+    //PATCH /api/transactions/:txId/progress
+    updateExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const userId = req.user.id;
-
         try {
             const tx = await getById(Transaction, txId);
-            if(!tx || tx.status !== 'pending' || tx.from.toString() !== userId || tx.transactionType !== 'transfer'){
-                res.status(400);
-                return next(new Error('Invalid updation'))
+            if(tx.status === 'completed' || tx.status === 'canceled') {
+                return next(new Error("Can't update a transaction that has been done"))
             }
 
-            const updatedTx = await this.txService.updateTx(txId, {status});
+            const updatedTx = await this.txService.updateTx(txId, req.body);
             res.status(200).json(updatedTx);
         } catch (error) {
-            next(error)
+            next(error);
         }
     }
 }
