@@ -29,6 +29,8 @@ class TransactionController {
             toTokenId
         } = req.query;
 
+        console.log(fromValueUp, fromValueDown, toValueUp, toValueDown)
+
         try {
             if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
                 res.status(400);
@@ -75,18 +77,17 @@ class TransactionController {
             transactionType,
             timelock,
             hashlock,
-            signedTxFrom,
-            txIdFrom
+            txIdFrom // id of transaction in smart contract
         } = req.body;
 
-        const {address} = req.user;
+        const user = req.user;
 
         if(transactionType === 'transfer' && (toValue !== 0  || fromTokenId !== toTokenId || !to)){
             res.status(400);
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !signedTxFrom))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !txIdFrom))  {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
@@ -104,7 +105,7 @@ class TransactionController {
         try {
             let newTransaction;
             const paramObj = {
-                from: address,
+                user,
                 fromValue,
                 fromTokenId,
                 toValue, 
@@ -118,7 +119,6 @@ class TransactionController {
             else{
                 paramObj['timelock'] = timelock;
                 paramObj['hashlock'] = hashlock;
-                paramObj['signedTxFrom'] = signedTxFrom;
                 paramObj['txIdFrom'] = txIdFrom;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
@@ -131,9 +131,9 @@ class TransactionController {
     //PATCH /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {signedTxTo, txIdTo} = req.body;
+        const {txIdTo} = req.body;
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, req.user, signedTxTo, txIdTo);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, req.user, txIdTo);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction completed'
@@ -150,10 +150,9 @@ class TransactionController {
     //PATCH /api/transactions/:txId/cancel
     cancelExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {signedCancelTx} = req.body;
 
         try {
-            const updatedTx = await this.txService.cancelExchangeTx(txId, req.user, signedCancelTx);
+            const updatedTx = await this.txService.cancelExchangeTx(txId, req.user);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction cancelled'

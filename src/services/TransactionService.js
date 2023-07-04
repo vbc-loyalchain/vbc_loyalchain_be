@@ -133,7 +133,7 @@ class TransactionService {
 
     createTransferTx = async (body) => {
         const {
-            from, 
+            user, 
             to,
             fromValue,
             fromTokenId,
@@ -141,14 +141,11 @@ class TransactionService {
             toTokenId,
         } = body;
 
-        const [fromUser, toUser] = await Promise.all([
-            getOne(User, {address: from}),
-            getOne(User, {address: to})
-        ])
+        const toUser = await getOne(User, {address: to})
 
         let newTransaction = await create(Transaction, {
-            from: fromUser._id,
-            to: toUser ? toUser._id : null,
+            from: user.id,
+            to: toUser._id,
             fromValue: {
                 token: fromTokenId,
                 amount: fromValue
@@ -171,30 +168,18 @@ class TransactionService {
 
     createExchangeTx = async (body) => {
         const {
-            from, 
+            user, 
             fromValue,
             fromTokenId,
             toValue, 
             toTokenId,
             timelock,
             hashlock,
-            signedTxFrom,
             txIdFrom
         } = body;
-
-        //get user to create exchange tx, get fromToken to know chainId of this one
-        const [fromUser, fromToken] = Promise.all([
-            getOne(User, {address: from}),
-            getById(Token, fromTokenId)
-        ])
-
-        //deposit amount fromValue to the contract
-        const provider = providers[fromToken.network];
-        const receipt = await provider.sendSignedRaw(signedTxFrom);
-        if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
         
         let newTransaction = await create(Transaction, {
-            from: fromUser._id,
+            from: user.id,
             to: null,
             fromValue: {
                 token: fromTokenId,
@@ -208,7 +193,6 @@ class TransactionService {
             status: 'pending',
             timelock,
             hashlock,
-            //signedTxFrom,
             txIdFrom
         });
 
@@ -220,22 +204,22 @@ class TransactionService {
     }
 
     /**
-     * @param {string} txId - Id of the transaction
+     * @param {string} txId - Id of the transaction in database
      * @param {object} receiver - request's sender (receiver)
-     * @param {string} signedTxTo - signed transaction that will be send to accept the transaction
      * @param {string} txIdTo - Id of the transaction in the contract
      */
-    acceptExchangeTx = async (txId, receiver, signedTxTo, txIdTo) => {
+    acceptExchangeTx = async (txId, receiver, txIdTo) => {
         let tx = await getById(Transaction, txId);
         tx = await tx.populate('fromValue.token');
         tx = await tx.populate('toValue.token');
 
         //check whether this transaction has been accepted by another user
-        if(tx.status !== 'pending')
+        if(tx.status !== 'pending'){
             throw {
                 statusCode: 400,
                 error: new Error("Can't accept a transaction that has been done")
             }
+        }
 
         //check whether owner address is the same as receipient address
         if(tx.from.toString() === receiver.id) {
@@ -244,11 +228,6 @@ class TransactionService {
                 error: new Error("Cannot accept by yourself")
             }
         }
-
-        //send the accept transaction to smart contract
-        const provider = providers[tx.toValue.token.network];
-        const receipt = await provider.sendSignedRaw(signedTxTo);
-        if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
  
         const updateObj = {
             to: receiver.id,
@@ -264,10 +243,9 @@ class TransactionService {
     /**
      * @param {string} txId - Id of the transaction
      * @param {object} sender - request's sender
-     * @param {string} signedCancelTx - signed transaction that will be send to cancel the transaction
      * @returns 
      */
-    cancelExchangeTx = async (txId, sender, signedCancelTx) => {
+    cancelExchangeTx = async (txId, sender) => {
         let tx = await getById(Transaction, txId);
         tx = await tx.populate('fromValue.token');
         tx = await tx.populate('toValue.token');
@@ -309,10 +287,6 @@ class TransactionService {
             updateObj = {
                 status: 'canceled',
             }
-            //send the cancel transaction to smart contract
-            const provider = providers[tx.fromValue.token.network];
-            const receipt = await provider.sendSignedRaw(signedCancelTx);
-            if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
         }
         else {
             updateObj = tx.status === 'waiting for receiver' ? {
@@ -320,13 +294,8 @@ class TransactionService {
             } : {
                 to: null,
                 status: 'pending',
-                //signedTxTo: null,
                 txIdTo: null,
             }
-
-            const provider = providers[tx.toValue.token.network];
-            const receipt = await provider.sendSignedRaw(signedCancelTx);
-            if(!receipt.tx.status) throw new Error('This transaction was reverted by an error');
         }
                    
         const updatedTx = await this.updateTx(txId, updateObj)

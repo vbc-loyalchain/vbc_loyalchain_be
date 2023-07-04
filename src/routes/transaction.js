@@ -3,7 +3,6 @@ import txController from '../controllers/TransactionController.js'
 import { 
     validate_create_tx, 
     validate_get_exchangeTx, 
-    validate_cancel_tx,
     validate_accept_tx
 } from '../middlewares/validate_tx.js'
 import { verifyToken } from '../middlewares/authMiddleware.js'
@@ -26,7 +25,7 @@ router.post('/create', verifyToken, validate_create_tx, txController.createNewTr
 router.patch('/:txId/accept', verifyToken, validate_accept_tx, txController.acceptExchangeTx)
 
 //cancel the exchange transaction
-router.patch('/:txId/cancel', verifyToken, validate_cancel_tx, txController.cancelExchangeTx)
+router.patch('/:txId/cancel', verifyToken, txController.cancelExchangeTx)
 
 //update transaction progress (exchange tx)
 router.patch('/:txId/progress', verifyToken, txController.updateExchangeTx)

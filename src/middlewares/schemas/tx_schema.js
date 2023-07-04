@@ -17,42 +17,36 @@ const create_tx_schema = Joi.object({
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
     timelock: Joi.number().min(0),
     hashlock: Joi.string(),
-    signedTxFrom: Joi.string(),
     txIdFrom: Joi.string(),
 })
 
 //get all exchange transactions in the market place
 const get_exchangeTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
-    fromValueUp: Joi.number().required().min(0).max(10000),
-    fromValueDown: Joi.number().required().min(0).max(10000),
+    fromValueUp: Joi.number().min(0).default(1000000),
+    fromValueDown: Joi.number().min(0).default(0),
 
     toTokenId: Joi.string().min(0),
-    toValueUp: Joi.number().required().min(0).max(10000),
-    toValueDown: Joi.number().required().min(0).max(10000),
-    page: Joi.number().required().min(1)
+    toValueUp: Joi.number().min(0).default(1000000),
+    toValueDown: Joi.number().min(0).default(0),
+    page: Joi.number().min(1).default(1)
 })
 
 //get all my transactions
 const get_myTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
-    fromValueUp: Joi.number().required().min(0).max(10000),
-    fromValueDown: Joi.number().required().min(0).max(10000),
+    fromValueUp: Joi.number().min(0).default(1000000),
+    fromValueDown: Joi.number().min(0).default(0),
 
     toTokenId: Joi.string().min(0),
-    toValueUp: Joi.number().required().min(0).max(10000),
-    toValueDown: Joi.number().required().min(0).max(10000),
+    toValueUp: Joi.number().min(0).default(1000000),
+    toValueDown: Joi.number().min(0).default(0),
 
-    transactionType: Joi.string().required().valid('all', 'transfer', 'exchange'),
-    page: Joi.number().required().min(1)
-})
-
-const cancel_tx_schema = Joi.object({
-    signedCancelTx: Joi.string().required()
+    transactionType: Joi.string().valid('all', 'transfer', 'exchange').default('all'),
+    page: Joi.number().min(1).default(1)
 })
 
 const accept_tx_schema = Joi.object({
-    signedTxTo: Joi.string().required(),
     txIdTo: Joi.string().required()
 })
 
@@ -60,6 +54,5 @@ export {
     create_tx_schema,
     get_exchangeTx_schema,
     get_myTx_schema,
-    cancel_tx_schema,
     accept_tx_schema,
 }
