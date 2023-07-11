@@ -23,6 +23,7 @@ class TransactionController {
         const fromValueDown = parseInt(req.query.fromValueDown);
         const toValueUp = parseInt(req.query.toValueUp);
         const toValueDown = parseInt(req.query.toValueDown);
+        const network = req.query.network ? parseInt(req.query.network) : -1;
         const page = parseInt(req.query.page);
         let {
             fromTokenId,
@@ -46,6 +47,7 @@ class TransactionController {
                 toValueUp,
                 toValueDown,
 
+                network,
                 page
             });
 

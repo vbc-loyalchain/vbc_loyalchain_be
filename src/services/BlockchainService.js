@@ -194,6 +194,11 @@ export default class BlockchainService {
         return receipt;
     }
 
+    getCode = async (address) => {
+        const code = await this.WEB3.eth.getCode(address);
+        return code;
+    }
+
     callFunc = async (ABI, SCA, funcName="", params=[], from="") => {
         let contract = new this.WEB3.eth.Contract(
             JSON.parse(JSON.stringify(ABI)),

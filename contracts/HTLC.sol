@@ -32,7 +32,8 @@ contract HTLC {
         uint256 amount,
         string memory key,
         bytes32 hashlock, 
-        uint256 timelock
+        uint256 timelock,
+        bytes memory signature //signature of msg.sender
     ) public returns (bool) {
         require(transactions[id].sender == address(0), "Duplicate transaction by id");
         require(msg.sender != receiver, "TTransaction invalid");
@@ -50,7 +51,7 @@ contract HTLC {
             isInProgress: false
         });
 
-        transactions[id].tokenContract.transferToBridge(msg.sender, amount);
+        transactions[id].tokenContract.transferToBridge(msg.sender, amount, signature);
         return true;
     }
 

@@ -1,7 +1,6 @@
 import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
 import User from '../models/User';
-import Token from '../models/Token';
 import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
 import mongoose from 'mongoose';
@@ -42,6 +41,7 @@ class TransactionService {
             toValueUp,
             toValueDown,
 
+            network,
             page
         } = filter;
 
@@ -65,14 +65,23 @@ class TransactionService {
 
         const options = {
             skip: (page - 1) * PAGE_SIZE,
-            limit: PAGE_SIZE
+            limit: PAGE_SIZE,
+            sort: {
+                createdAt: -1
+            }
         };
 
-        const allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
-                                .populate('from')
-                                .populate('to')
-                                .populate('fromValue.token')
-                                .populate('toValue.token')
+        let allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options).populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+        ]);
+        
+        //get all exchange tx that user can buy in this chainId
+        if(network !== -1){
+            allExchangeTx = allExchangeTx.filter(tx => tx.toValue.token.network === network);
+        }
 
         return allExchangeTx;
     }
@@ -158,10 +167,12 @@ class TransactionService {
             status: 'completed'
         });
 
-        newTransaction = await newTransaction.populate('from');
-        newTransaction = await newTransaction.populate('to')
-        newTransaction = await newTransaction.populate('fromValue.token');
-        newTransaction = await newTransaction.populate('toValue.token');
+        newTransaction = await newTransaction.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+        ])
 
         return newTransaction;
     }
@@ -196,9 +207,12 @@ class TransactionService {
             txIdFrom
         });
 
-        newTransaction = await newTransaction.populate('from');
-        newTransaction = await newTransaction.populate('fromValue.token');
-        newTransaction = await newTransaction.populate('toValue.token');
+        newTransaction = await newTransaction.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+        ])
 
         return newTransaction;
     }
@@ -210,8 +224,10 @@ class TransactionService {
      */
     acceptExchangeTx = async (txId, receiver, txIdTo) => {
         let tx = await getById(Transaction, txId);
-        tx = await tx.populate('fromValue.token');
-        tx = await tx.populate('toValue.token');
+        tx = await tx.populate([
+            {path: 'fromValue.token', select: 'network'},
+            {path: 'toValue.token', select: 'network'}
+        ])
 
         //check whether this transaction has been accepted by another user
         if(tx.status !== 'pending'){
@@ -247,8 +263,6 @@ class TransactionService {
      */
     cancelExchangeTx = async (txId, sender) => {
         let tx = await getById(Transaction, txId);
-        tx = await tx.populate('fromValue.token');
-        tx = await tx.populate('toValue.token');
 
         let updateObj;
 
@@ -308,10 +322,12 @@ class TransactionService {
             new: true
         })
 
-        updatedTx = await updatedTx.populate('from');
-        updatedTx = await updatedTx.populate('to');
-        updatedTx = await updatedTx.populate('toValue.token');
-        updatedTx = await updatedTx.populate('fromValue.token');
+        updatedTx = await updatedTx.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+        ])
 
         return updatedTx;
     }

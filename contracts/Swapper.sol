@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./Token.sol";
 
-contract Bridge {
+contract Swapper {
     struct LockContract {
         address from;
         address to;
@@ -19,11 +19,11 @@ contract Bridge {
 
     mapping(string => LockContract) transactions;
 
-    event canceled(address from, uint256 amount);
+    event canceled(string indexed txId, address indexed from, uint256 amount);
 
-    event accepted(address to);
+    event accepted(string indexed txId, address indexed to);
 
-    event swapSuccessfully(address from, address to);
+    event swapSuccessfully(string indexed txId, address indexed from, address indexed to);
 
     constructor() {}
 
@@ -33,7 +33,8 @@ contract Bridge {
         address tokenTo, 
         uint256 amountFrom, 
         uint256 amountTo,
-        uint256 timelock //hours
+        uint256 timelock, //hours
+        bytes memory signature //signature of msg.sender
     ) public returns (bool) {
         require(transactions[id].from == address(0), "Duplicate transaction by id");
         require(tokenFrom != tokenTo, "Only swap between two different token");
@@ -49,11 +50,11 @@ contract Bridge {
             refunded: false
         });
 
-        transactions[id].token_from.transferToBridge(transactions[id].from, transactions[id].amount_from);
+        transactions[id].token_from.transferToBridge(msg.sender, transactions[id].amount_from, signature);
         return true;
     }
 
-    function accept(string memory txId) external {
+    function acceptTx(string memory txId, bytes memory signature) external { //signature: signature of msg.sender
         LockContract storage exchangeTx = transactions[txId];
         require(exchangeTx.from != address(0), "This transaction doesn't exists");
         require(exchangeTx.completed != true && exchangeTx.refunded != true, "This transaction has been done");
@@ -61,8 +62,8 @@ contract Bridge {
         require(exchangeTx.from != msg.sender, "Can't accept by your self! =))");
         
         exchangeTx.to = msg.sender;
-        exchangeTx.token_to.transferToBridge(exchangeTx.to, exchangeTx.amount_to);
-        emit accepted(msg.sender);
+        exchangeTx.token_to.transferToBridge(exchangeTx.to, exchangeTx.amount_to, signature);
+        emit accepted(txId, msg.sender);
 
         swap(txId);
     }
@@ -76,7 +77,7 @@ contract Bridge {
 
         exchangeTx.token_from.transfer(exchangeTx.from,  exchangeTx.amount_from);
         exchangeTx.refunded = true;
-        emit canceled(exchangeTx.from, exchangeTx.amount_from);
+        emit canceled(txId, exchangeTx.from, exchangeTx.amount_from);
     }
 
     function swap(string memory txId) internal {
@@ -86,7 +87,7 @@ contract Bridge {
         exchangeTx.token_to.transfer(exchangeTx.from, exchangeTx.amount_to);
 
         exchangeTx.completed = true;
-        emit swapSuccessfully( exchangeTx.from,  exchangeTx.to);
+        emit swapSuccessfully(txId, exchangeTx.from,  exchangeTx.to);
     }
 
     function txInfo(string memory id) public view returns (LockContract memory) {

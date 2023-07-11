@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import { connectApp } from './config/index.js'
 import route from './routes/index.js'
 import { notFound, errorHandler } from './middlewares'
+import redisClient from './config/redis.js';
 
 dotenv.config()
 
@@ -28,10 +29,10 @@ connectApp(app)
 //routing for application
 route(app)
 
-// app.get('/test', (req, res, next) => {
-//     res.cookie('vcl', 123);
-//     res.send('OK da set');
-// })
+app.get('/cache/clear', async (req, res, next) => {
+    await redisClient.del('enterprises');
+    res.status(200).json('OK');
+})
 
 // app.get('/test1', (req, res, next) => {
 //     res.cookie('vcl', 1234);

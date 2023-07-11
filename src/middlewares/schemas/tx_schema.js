@@ -9,10 +9,10 @@ const create_tx_schema = Joi.object({
     to: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{40}$')),
 
     fromValue: Joi.number().required().min(1),
-    fromTokenId: Joi.string().required(),
+    fromTokenId: Joi.string().required().pattern(new RegExp('^[0-9a-fA-F]{24}$')),
 
     toValue: Joi.number().required().min(0),
-    toTokenId: Joi.string().required(),
+    toTokenId: Joi.string().required().pattern(new RegExp('^[0-9a-fA-F]{24}$')),
 
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
     timelock: Joi.number().min(0),
@@ -29,6 +29,7 @@ const get_exchangeTx_schema = Joi.object({
     toTokenId: Joi.string().min(0),
     toValueUp: Joi.number().min(0).default(1000000),
     toValueDown: Joi.number().min(0).default(0),
+    network: Joi.number(),
     page: Joi.number().min(1).default(1)
 })
 
