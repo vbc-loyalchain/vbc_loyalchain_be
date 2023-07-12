@@ -34,14 +34,16 @@ const transactionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'completed', 'canceled'],
+        enum: ['pending', 'waiting for sender', 'waiting for receiver', 'completed', 'canceled'],
         default: 'created',
         required: true
     },
     timelock: {type: Number},
     hashlock: {type: String},
-    signedTxFrom: {type: String},
-    signedTxTo: {type: String}
+    // signedTxFrom: {type: String},
+    // signedTxTo: {type: String},
+    txIdFrom: {type: String},
+    txIdTo: {type: String}
 }, {
     timestamps: true
 })

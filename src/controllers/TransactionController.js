@@ -23,11 +23,14 @@ class TransactionController {
         const fromValueDown = parseInt(req.query.fromValueDown);
         const toValueUp = parseInt(req.query.toValueUp);
         const toValueDown = parseInt(req.query.toValueDown);
+        const network = req.query.network ? parseInt(req.query.network) : -1;
         const page = parseInt(req.query.page);
         let {
             fromTokenId,
             toTokenId
         } = req.query;
+
+        console.log(fromValueUp, fromValueDown, toValueUp, toValueDown)
 
         try {
             if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
@@ -44,6 +47,7 @@ class TransactionController {
                 toValueUp,
                 toValueDown,
 
+                network,
                 page
             });
 
@@ -75,17 +79,17 @@ class TransactionController {
             transactionType,
             timelock,
             hashlock,
-            signedTxFrom
+            txIdFrom // id of transaction in smart contract
         } = req.body;
 
-        const {address} = req.user;
+        const user = req.user;
 
         if(transactionType === 'transfer' && (toValue !== 0  || fromTokenId !== toTokenId || !to)){
             res.status(400);
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !signedTxFrom))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !txIdFrom))  {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
@@ -103,7 +107,7 @@ class TransactionController {
         try {
             let newTransaction;
             const paramObj = {
-                from: address,
+                user,
                 fromValue,
                 fromTokenId,
                 toValue, 
@@ -117,7 +121,7 @@ class TransactionController {
             else{
                 paramObj['timelock'] = timelock;
                 paramObj['hashlock'] = hashlock;
-                paramObj['signedTxFrom'] = signedTxFrom;
+                paramObj['txIdFrom'] = txIdFrom;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);
@@ -126,12 +130,12 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/accept/:txId
+    //PATCH /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {address} = req.user;
+        const {txIdTo} = req.body;
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, address);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, req.user, txIdTo);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction completed'
@@ -145,13 +149,12 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/cancel/:txId
+    //PATCH /api/transactions/:txId/cancel
     cancelExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {address} = req.user;
 
         try {
-            const updatedTx = await this.txService.cancelExchangeTx(txId, address);
+            const updatedTx = await this.txService.cancelExchangeTx(txId, req.user);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction cancelled'
@@ -165,23 +168,19 @@ class TransactionController {
         }
     }
 
-    ////PATCH /api/transactions//transfer/update/:txId
-    updateTransferTxStatus = async (req, res, next) => {
-        const {status} = req.body;
+    //PATCH /api/transactions/:txId/progress
+    updateExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const userId = req.user.id;
-
         try {
             const tx = await getById(Transaction, txId);
-            if(!tx || tx.status !== 'pending' || tx.from.toString() !== userId || tx.transactionType !== 'transfer'){
-                res.status(400);
-                return next(new Error('Invalid updation'))
+            if(tx.status === 'completed' || tx.status === 'canceled') {
+                return next(new Error("Can't update a transaction that has been done"))
             }
 
-            const updatedTx = await this.txService.updateTx(txId, {status});
+            const updatedTx = await this.txService.updateTx(txId, req.body);
             res.status(200).json(updatedTx);
         } catch (error) {
-            next(error)
+            next(error);
         }
     }
 }

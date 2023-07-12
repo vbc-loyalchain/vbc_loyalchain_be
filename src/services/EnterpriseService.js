@@ -1,7 +1,5 @@
 import {create, getAll} from '../repositories/crud';
 import Token from '../models/Token';
-import providers from '../config/providers'
-import {ERC20TokenContract} from '../config/contract/ERC20Token'
 import redisClient from '../config/redis';
 
 class EnterpriseService {
@@ -19,7 +17,7 @@ class EnterpriseService {
         const enterprisesCache = JSON.parse(await redisClient.get('enterprises')); 
         enterprisesCache.push(newEnterprise);
         await redisClient.set('enterprises', JSON.stringify(enterprisesCache))
-        await redisClient.set(newEnterprise._id, 'true')
+        await redisClient.set(newEnterprise._id.toString(), 'true')
 
         return newEnterprise;
     }

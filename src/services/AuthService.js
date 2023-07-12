@@ -3,7 +3,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token";
 import { getOne, create } from "../repositories";
 import jwt from "jsonwebtoken";
 import providers from '../config/providers';
-const providerDefault = providers.MBC;
+const providerDefault = providers[4444];
 
 class AuthService {
     register = async(address) => {

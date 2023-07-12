@@ -3,7 +3,7 @@ import txController from '../controllers/TransactionController.js'
 import { 
     validate_create_tx, 
     validate_get_exchangeTx, 
-    validate_update_transferTxStatus
+    validate_accept_tx
 } from '../middlewares/validate_tx.js'
 import { verifyToken } from '../middlewares/authMiddleware.js'
 
@@ -22,15 +22,12 @@ router.get('/rate/:tokenId1/:tokenId2', txController.getExchangeRate)
 router.post('/create', verifyToken, validate_create_tx, txController.createNewTransaction)
 
 //update exchange transaction when another user accept the transaction
-router.patch('/accept/:txId', verifyToken, txController.acceptExchangeTx)
+router.patch('/:txId/accept', verifyToken, validate_accept_tx, txController.acceptExchangeTx)
 
 //cancel the exchange transaction
-router.patch('/cancel/:txId', verifyToken, txController.cancelExchangeTx)
+router.patch('/:txId/cancel', verifyToken, txController.cancelExchangeTx)
 
-//update status of the transaction when transfer successfully
-router.patch('/transfer/update/:txId', verifyToken, validate_update_transferTxStatus, txController.updateTransferTxStatus)
-
-//update status of the transaction when exchange successfully
-// router.patch('/exchange/update/:txId', verifyToken, txController.updateTransactionStatus)
+//update transaction progress (exchange tx)
+router.patch('/:txId/progress', verifyToken, txController.updateExchangeTx)
 
 export default router

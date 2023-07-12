@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 
 const NFTSchema = new mongoose.Schema({
-    tokenID: {
+    collectionAddress: {
+        type: String,
+        required: true
+    },
+    enterprise: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Token',
+        required: true
+    },
+    NFTId: {
         type: Number,
         required: true
     },
@@ -10,10 +19,21 @@ const NFTSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    collection: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Collection',
-        required: true
+    price: {
+        type: Number,
+        min: 0,
+        required: true,
+        default: 0
+    },
+    isSelling: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    deleted: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 }, {
     timestamps: true

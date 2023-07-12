@@ -1,6 +1,5 @@
 import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
-import Token from "../models/Token";
 import User from '../models/User';
 import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
@@ -42,6 +41,7 @@ class TransactionService {
             toValueUp,
             toValueDown,
 
+            network,
             page
         } = filter;
 
@@ -65,14 +65,23 @@ class TransactionService {
 
         const options = {
             skip: (page - 1) * PAGE_SIZE,
-            limit: PAGE_SIZE
+            limit: PAGE_SIZE,
+            sort: {
+                createdAt: -1
+            }
         };
 
-        const allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options)
-                                .populate('from')
-                                .populate('to')
-                                .populate('fromValue.token')
-                                .populate('toValue.token')
+        let allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options).populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
+        ]);
+        
+        //get all exchange tx that user can buy in this chainId
+        if(network !== -1){
+            allExchangeTx = allExchangeTx.filter(tx => tx.toValue.token.network === network);
+        }
 
         return allExchangeTx;
     }
@@ -133,7 +142,7 @@ class TransactionService {
 
     createTransferTx = async (body) => {
         const {
-            from, 
+            user, 
             to,
             fromValue,
             fromTokenId,
@@ -141,14 +150,11 @@ class TransactionService {
             toTokenId,
         } = body;
 
-        const [fromUser, toUser] = await Promise.all([
-            getOne(User, {address: from}),
-            getOne(User, {address: to})
-        ])
+        const toUser = await getOne(User, {address: to})
 
         let newTransaction = await create(Transaction, {
-            from: fromUser._id,
-            to: toUser ? toUser._id : null,
+            from: user.id,
+            to: toUser._id,
             fromValue: {
                 token: fromTokenId,
                 amount: fromValue
@@ -161,32 +167,30 @@ class TransactionService {
             status: 'completed'
         });
 
-        newTransaction = await newTransaction.populate('from');
-        newTransaction = await newTransaction.populate('to')
-        newTransaction = await newTransaction.populate('fromValue.token');
-        newTransaction = await newTransaction.populate('toValue.token');
+        newTransaction = await newTransaction.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
+        ])
 
         return newTransaction;
     }
 
     createExchangeTx = async (body) => {
         const {
-            from, 
+            user, 
             fromValue,
             fromTokenId,
             toValue, 
             toTokenId,
             timelock,
             hashlock,
-            signedTxFrom
+            txIdFrom
         } = body;
-
-        const fromUser = await getOne(User, {
-            address: from
-        });
         
         let newTransaction = await create(Transaction, {
-            from: fromUser._id,
+            from: user.id,
             to: null,
             fromValue: {
                 token: fromTokenId,
@@ -200,51 +204,116 @@ class TransactionService {
             status: 'pending',
             timelock,
             hashlock,
-            signedTxFrom
+            txIdFrom
         });
 
-        newTransaction = await newTransaction.populate('from');
-        newTransaction = await newTransaction.populate('fromValue.token');
-        newTransaction = await newTransaction.populate('toValue.token');
+        newTransaction = await newTransaction.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
+        ])
 
         return newTransaction;
     }
 
-    acceptExchangeTx = async (txId, receipientAddress) => {
+    /**
+     * @param {string} txId - Id of the transaction in database
+     * @param {object} receiver - request's sender (receiver)
+     * @param {string} txIdTo - Id of the transaction in the contract
+     */
+    acceptExchangeTx = async (txId, receiver, txIdTo) => {
         let tx = await getById(Transaction, txId);
-        
-        if(tx.to) {
+        tx = await tx.populate([
+            {path: 'fromValue.token', select: 'network'},
+            {path: 'toValue.token', select: 'network'}
+        ])
+
+        //check whether this transaction has been accepted by another user
+        if(tx.status !== 'pending'){
             throw {
                 statusCode: 400,
-                error: new Error("This transaction has been accepted by another user")
+                error: new Error("Can't accept a transaction that has been done")
             }
         }
-        else {
-            //update transaction receipient and tx status
-            //make exchange token
-            //return updated transaction
+
+        //check whether owner address is the same as receipient address
+        if(tx.from.toString() === receiver.id) {
+            throw {
+                statusCode: 400,
+                error: new Error("Cannot accept by yourself")
+            }
         }
+ 
+        const updateObj = {
+            to: receiver.id,
+            status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'waiting for sender',
+            txIdTo,
+        };
+
+        const updatedTx = await this.updateTx(txId, updateObj)
+
+        return updatedTx;
     }
 
-    cancelExchangeTx = async (txId, senderAddress) => {
+    /**
+     * @param {string} txId - Id of the transaction
+     * @param {object} sender - request's sender
+     * @returns 
+     */
+    cancelExchangeTx = async (txId, sender) => {
         let tx = await getById(Transaction, txId);
-        tx = await tx.populate('from');
 
-        if(tx.status !== 'pending')
+        let updateObj;
+
+        //check whether the transaction has been cancelled or completed
+        if(tx.status === 'completed' || tx.status === 'canceled')
             throw {
                 statusCode: 400,
                 error: new Error("Can't cancel a transaction that has been done")
             }
         
-        if(tx.from.address !== senderAddress)
+        //if status is pending, only owner can cancel this transaction
+        if(tx.status === 'pending' && tx.from.toString() !== sender.id)
             throw {
                 statusCode: 400,
                 error: new Error("Only owner can cancel this transaction")
             }
 
-        const updatedTx = await this.updateTx(txId, {
-            status: 'canceled'
-        })
+        //if status is waiting for receiver, only receiver can cancel
+        if(tx.status === 'waiting for receiver' && tx.to.toString() !== sender.id)
+            throw {
+                statusCode: 400,
+                error: new Error("Now only receiver can cancel this transaction")
+            }
+
+        //if status is waiting for sender, both receiver and owner can cancel, otherwise throw an error.
+        if( tx.status === 'waiting for sender' && 
+            tx.from.toString() !== sender.id && 
+            tx.to.toString() !== sender.id) {
+            throw {
+                statusCode: 400,
+                error: new Error("Don't have permission to cancel this transaction")
+            }
+        }
+        
+        if(tx.from.toString() === sender.id) {
+            updateObj = {
+                status: 'canceled',
+            }
+        }
+        else {
+            updateObj = tx.status === 'waiting for receiver' ? {
+                status: 'canceled'
+            } : {
+                to: null,
+                status: 'pending',
+                txIdTo: null,
+            }
+        }
+                   
+        const updatedTx = await this.updateTx(txId, updateObj)
+
         return updatedTx;
     }
 
@@ -253,10 +322,12 @@ class TransactionService {
             new: true
         })
 
-        updatedTx = await updatedTx.populate('from');
-        updatedTx = await updatedTx.populate('to');
-        updatedTx = await updatedTx.populate('toValue.token');
-        updatedTx = await updatedTx.populate('fromValue.token');
+        updatedTx = await updatedTx.populate([
+            {path: 'from', select: '_id address'},
+            {path: 'to', select: '_id address'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
+        ])
 
         return updatedTx;
     }
