@@ -2,7 +2,7 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\HTLC.sol": {
-      "lastModificationDate": 1688713677345,
+      "lastModificationDate": 1689084390004,
       "contentHash": "3b0feed4cb61c1876d24d0c80bcf94ca",
       "sourceName": "contracts/HTLC.sol",
       "solcConfig": {
@@ -697,45 +697,6 @@
         "ERC721URIStorage"
       ]
     },
-    "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\NFT.sol": {
-      "lastModificationDate": 1689050022930,
-      "contentHash": "024c2911f449e57f47ef1cce10d20e95",
-      "sourceName": "contracts/NFT.sol",
-      "solcConfig": {
-        "version": "0.8.17",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
-        "@openzeppelin/contracts/access/Ownable.sol",
-        "./Token.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "NFT"
-      ]
-    },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
       "lastModificationDate": 1687793226525,
       "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
@@ -774,8 +735,8 @@
       ]
     },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Token.sol": {
-      "lastModificationDate": 1688713655144,
-      "contentHash": "ef775bc916ce53fecb36ba07bc046be7",
+      "lastModificationDate": 1689084390005,
+      "contentHash": "a5290cc0454fb5c130bc3463264f67ce",
       "sourceName": "contracts/Token.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -849,7 +810,7 @@
       ]
     },
     "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Swapper.sol": {
-      "lastModificationDate": 1688718338736,
+      "lastModificationDate": 1689084390005,
       "contentHash": "e7b13c6ef0dab75604e8b6082c64c8f6",
       "sourceName": "contracts/Swapper.sol",
       "solcConfig": {
@@ -884,6 +845,83 @@
       ],
       "artifacts": [
         "Swapper"
+      ]
+    },
+    "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\Collection.sol": {
+      "lastModificationDate": 1689137430777,
+      "contentHash": "bad5cef69cae65fcf9f80f1cf1c7b57f",
+      "sourceName": "contracts/Collection.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "./Token.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Collection"
+      ]
+    },
+    "D:\\HK222\\Intern\\Loyalty_Point_Exchange_Backend\\contracts\\NFTMarket.sol": {
+      "lastModificationDate": 1689137445281,
+      "contentHash": "35ef9a6ecd248e4b961eee41b86f07de",
+      "sourceName": "contracts/NFTMarket.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Collection.sol",
+        "./Token.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "NFTMarket"
       ]
     }
   }

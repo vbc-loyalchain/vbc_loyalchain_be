@@ -17,7 +17,7 @@ class EnterpriseService {
         const enterprisesCache = JSON.parse(await redisClient.get('enterprises')); 
         enterprisesCache.push(newEnterprise);
         await redisClient.set('enterprises', JSON.stringify(enterprisesCache))
-        await redisClient.set(newEnterprise._id, 'true')
+        await redisClient.set(newEnterprise._id.toString(), 'true')
 
         return newEnterprise;
     }

@@ -13,14 +13,8 @@ class UserController {
         return res.status(200).json(this.userService.getUser())
     }
 
-    //GET /api/users/:userId/transactions
+    //GET /api/users/transactions
     getMyTx = async (req, res, next) => {
-        const userId = req.params.userId;
-        if(userId !== req.user.id) {
-            res.status(403);
-            return next(new Error('Forbidden'));
-        }
-
         const fromValueUp = parseInt(req.query.fromValueUp);
         const fromValueDown = parseInt(req.query.fromValueDown);
         const toValueUp = parseInt(req.query.toValueUp);
@@ -39,7 +33,7 @@ class UserController {
             }
             
             const myTx = await this.userService.getMyTx(
-                userId,
+                req.user.id,
                 {
                     fromTokenId,
                     fromValueUp,
@@ -56,6 +50,20 @@ class UserController {
 
             res.status(200).json(myTx);
         } catch (error) {
+            next(error)
+        }
+    }
+
+    //[GET] /api/users/nfts
+    getMyNFT = async (req, res, next) => {
+        try {
+            const myNFT = await this.userService.getMyNFT(req.user.id, req.query);
+            res.status(200).json(myNFT)
+        } catch (error) {
+            if(error.statusCode) {
+                res.status(error.statusCode);
+                return next(error.error);
+            }
             next(error)
         }
     }

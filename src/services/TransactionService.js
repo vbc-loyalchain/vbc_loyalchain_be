@@ -74,8 +74,8 @@ class TransactionService {
         let allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options).populate([
             {path: 'from', select: '_id address'},
             {path: 'to', select: '_id address'},
-            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
-            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
         ]);
         
         //get all exchange tx that user can buy in this chainId
@@ -170,8 +170,8 @@ class TransactionService {
         newTransaction = await newTransaction.populate([
             {path: 'from', select: '_id address'},
             {path: 'to', select: '_id address'},
-            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
-            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
         ])
 
         return newTransaction;
@@ -210,8 +210,8 @@ class TransactionService {
         newTransaction = await newTransaction.populate([
             {path: 'from', select: '_id address'},
             {path: 'to', select: '_id address'},
-            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
-            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
         ])
 
         return newTransaction;
@@ -325,8 +325,8 @@ class TransactionService {
         updatedTx = await updatedTx.populate([
             {path: 'from', select: '_id address'},
             {path: 'to', select: '_id address'},
-            {path: 'fromValue.token', select: '_id name symbol deployedAddress network image'},
-            {path: 'toValue.token', select: '_id name symbol deployedAddress network image'},
+            {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
+            {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
         ])
 
         return updatedTx;

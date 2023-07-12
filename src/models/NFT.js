@@ -22,11 +22,18 @@ const NFTSchema = new mongoose.Schema({
     price: {
         type: Number,
         min: 0,
-        required: true
+        required: true,
+        default: 0
     },
     isSelling: {
         type: Boolean,
-        required: true
+        required: true,
+        default: false
+    },
+    deleted: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 }, {
     timestamps: true

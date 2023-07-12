@@ -1,4 +1,4 @@
-export const ERC721NftContract = {
+{
   "_format": "hh-sol-artifact-1",
   "contractName": "Collection",
   "sourceName": "contracts/Collection.sol",
