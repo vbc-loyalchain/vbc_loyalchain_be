@@ -120,6 +120,12 @@ export default class BlockchainService {
         return signedTx;
    }
 
+   signData = (paramsObj, privateKey) => {
+        const message = this.WEB3.utils.soliditySha3(...paramsObj);
+        const {signature} = this.WEB3.eth.accounts.sign(message,privateKey);
+        return signature;
+   }
+
     createRawDeploySC = async (ABI, bytecode="", params=[], from="",value=0) => {
 
         let contract = new this.WEB3.eth.Contract(JSON.parse(JSON.stringify(ABI)));

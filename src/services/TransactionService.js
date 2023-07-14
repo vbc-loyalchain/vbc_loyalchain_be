@@ -1,11 +1,15 @@
+import CryptoJS from "crypto-js";
+import dotenv from 'dotenv';
 import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
 import User from '../models/User';
-import { ERC20TokenContract } from "../config/contract/ERC20Token";
 import providers from '../config/providers';
 import mongoose from 'mongoose';
+import {SwapTwoChainContract} from '../config/variables';
+import {SwapTwoChain} from '../config/contract/SwapTwoChain';
+dotenv.config();
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 16;
 
 class TransactionService {
     getGeneralInfo = async () => {
@@ -185,8 +189,7 @@ class TransactionService {
             toValue, 
             toTokenId,
             timelock,
-            hashlock,
-            txIdFrom
+            txId
         } = body;
         
         let newTransaction = await create(Transaction, {
@@ -203,8 +206,7 @@ class TransactionService {
             transactionType: 'exchange',
             status: 'pending',
             timelock,
-            hashlock,
-            txIdFrom
+            txId
         });
 
         newTransaction = await newTransaction.populate([
@@ -219,10 +221,10 @@ class TransactionService {
 
     /**
      * @param {string} txId - Id of the transaction in database
+     * @param {string} hashlock - Hash of the secret key for tx
      * @param {object} receiver - request's sender (receiver)
-     * @param {string} txIdTo - Id of the transaction in the contract
      */
-    acceptExchangeTx = async (txId, receiver, txIdTo) => {
+    acceptExchangeTx = async (txId, hashlock, receiver) => {
         let tx = await getById(Transaction, txId);
         tx = await tx.populate([
             {path: 'fromValue.token', select: 'network'},
@@ -233,7 +235,7 @@ class TransactionService {
         if(tx.status !== 'pending'){
             throw {
                 statusCode: 400,
-                error: new Error("Can't accept a transaction that has been done")
+                error: new Error("Can't accept a transaction that is in progress or has been done")
             }
         }
 
@@ -247,8 +249,8 @@ class TransactionService {
  
         const updateObj = {
             to: receiver.id,
-            status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'waiting for sender',
-            txIdTo,
+            status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'receiver accepted',
+            hashlock,
         };
 
         const updatedTx = await this.updateTx(txId, updateObj)
@@ -264,13 +266,11 @@ class TransactionService {
     cancelExchangeTx = async (txId, sender) => {
         let tx = await getById(Transaction, txId);
 
-        let updateObj;
-
         //check whether the transaction has been cancelled or completed
-        if(tx.status === 'completed' || tx.status === 'canceled')
+        if(tx.status === 'completed' || tx.status === 'canceled' || tx.status === 'receiver withdrawn')
             throw {
                 statusCode: 400,
-                error: new Error("Can't cancel a transaction that has been done")
+                error: new Error("Can't cancel a transaction that is in progress or has been done")
             }
         
         //if status is pending, only owner can cancel this transaction
@@ -281,38 +281,16 @@ class TransactionService {
             }
 
         //if status is waiting for receiver, only receiver can cancel
-        if(tx.status === 'waiting for receiver' && tx.to.toString() !== sender.id)
+        if((tx.status === 'receiver accepted' || tx.status === 'sender accepted') && 
+            (tx.from.toString() !== sender.id && tx.to.toString() !== sender.id))
             throw {
                 statusCode: 400,
-                error: new Error("Now only receiver can cancel this transaction")
+                error: new Error("Now only owner and receiver can cancel this transaction")
             }
-
-        //if status is waiting for sender, both receiver and owner can cancel, otherwise throw an error.
-        if( tx.status === 'waiting for sender' && 
-            tx.from.toString() !== sender.id && 
-            tx.to.toString() !== sender.id) {
-            throw {
-                statusCode: 400,
-                error: new Error("Don't have permission to cancel this transaction")
-            }
-        }
-        
-        if(tx.from.toString() === sender.id) {
-            updateObj = {
-                status: 'canceled',
-            }
-        }
-        else {
-            updateObj = tx.status === 'waiting for receiver' ? {
-                status: 'canceled'
-            } : {
-                to: null,
-                status: 'pending',
-                txIdTo: null,
-            }
-        }
                    
-        const updatedTx = await this.updateTx(txId, updateObj)
+        const updatedTx = await this.updateTx(txId, {
+            status: 'canceled'
+        })
 
         return updatedTx;
     }
@@ -333,25 +311,55 @@ class TransactionService {
     }
 
     /**
-     * 
-     * @param {string} from address of the sender
-     * @param {string} to - address of receipient
-     * @param {number} value - amount token want to transfer
-     * @param {string} SCA - address of the contrart token ERC20
-     * @param {string} network - network that contract was deployed
-     * @param {string} privateKey - private key of the account to tranfer
+     * @param {*} txId - Id of the transaction in Blockchain
+     * @param {*} callerAddress - Address of the caller who made this request 
+     * @param {*} nonce - current nonce of the caller account
+     * @param {*} network - network of the SwapTwoChain contract which was deployed
      */
-    transfer = async (from, to, value, SCA, network, privateKey) => {
+    getSignatureRefund = async (txId, callerAddress, nonce, network) => {
         const provider = providers[network];
-        const ABI = ERC20TokenContract.abi;
+        const SCA = SwapTwoChainContract[network];
 
-        const decimals = Number(await provider.callFunc(ABI, SCA, 'decimals', [], from));
-        const amount = BigInt(value * (10 ** decimals));
+        const isEndLock = await provider.callFunc(SwapTwoChain.abi, SCA, 'isEndLockContract', [txId], callerAddress);
 
-        const receipt = await provider.makeTransactionEIP1559(ABI, SCA, 'transfer', [to, amount], from, privateKey);
-        console.log(receipt);
-        return receipt;
-    }
+        if(!isEndLock) {
+            throw {
+                statusCode: 400,
+                error: new Error('Too early to refund from smart contract')
+            }
+        }
+
+        const refunded = await provider.callFunc(SwapTwoChain.abi, SCA, 'isRefunded', [txId], callerAddress)
+        if(refunded) {
+            throw {
+                statusCode: 400,
+                error: new Error('You have been refunded this transaction')
+            }
+        }
+
+        const privateKey = CryptoJS.AES.decrypt(
+            process.env.PRIVATE_KEY_ENCRYPT,
+            process.env.PRIVATE_KEY_SECRET
+        ).toString(CryptoJS.enc.Utf8);
+
+        const data = [
+            {
+                type: "string",
+                value: txId,
+            },
+            {
+                type: "address",
+                value: callerAddress,
+            },
+            {
+                type: "uint256",
+                value: nonce,
+            }
+        ]
+
+        const signature = provider.signData(data, privateKey)
+        return signature;
+    };
 }
 
 export default new TransactionService()

@@ -7,6 +7,7 @@ import { connectApp } from './config/index.js'
 import route from './routes/index.js'
 import { notFound, errorHandler } from './middlewares'
 import redisClient from './config/redis.js';
+import swagger from './config/swagger/index.js'
 
 dotenv.config()
 
@@ -33,6 +34,8 @@ app.get('/cache/clear', async (req, res, next) => {
     await redisClient.del('enterprises');
     res.status(200).json('OK');
 })
+
+app.use('/api-docs', swagger.swaggerUi_serve, swagger.swaggerUi_setup)
 
 // app.get('/test1', (req, res, next) => {
 //     res.cookie('vcl', 1234);

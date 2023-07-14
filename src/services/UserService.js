@@ -3,7 +3,7 @@ import User from "../models/User";
 import NFT from "../models/NFT";
 import Transaction from "../models/Transaction";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 16;
 
 class UserService {
     getUser() {
