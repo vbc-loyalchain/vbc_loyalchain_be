@@ -231,6 +231,13 @@ class TransactionService {
             {path: 'toValue.token', select: 'network'}
         ])
 
+        if(tx.fromValue.token.network !== tx.toValue.token.network && !hashlock) {
+            throw {
+                statusCode: 400,
+                error: new Error("Hashlock is required")
+            }
+        }
+
         //check whether this transaction has been accepted by another user
         if(tx.status !== 'pending'){
             throw {

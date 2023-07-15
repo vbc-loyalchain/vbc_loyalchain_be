@@ -20,7 +20,7 @@
  * tags:
  *   name: Auth
  *   description: The Authentication managing API
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: Login or register an account if this is the first time you use system
  *     tags: [Auth]
@@ -92,7 +92,7 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /auth/token:
+ * /api/auth/token:
  *   get:
  *     summary: Get a new access token
  *     tags: [Auth]

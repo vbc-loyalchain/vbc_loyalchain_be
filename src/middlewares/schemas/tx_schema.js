@@ -20,7 +20,7 @@ const create_tx_schema = Joi.object({
 })
 
 const accept_tx_schema = Joi.object({
-    hashlock: Joi.string().required()
+    hashlock: Joi.string()
 })
 
 //get all exchange transactions in the market place
@@ -54,7 +54,7 @@ const update_exchangeTxStatus_schema = Joi.object({
     status: Joi.string().required().valid('sender accepted', 'receiver withdrawn', 'completed')
 })
 
-const refund_tx_schema = Joi.object({
+const sigForRefund_tx_schema = Joi.object({
     txId: Joi.string().required(),
     nonce: Joi.number().required().min(0)
 })
@@ -65,5 +65,5 @@ export {
     get_exchangeTx_schema,
     get_myTx_schema,
     update_exchangeTxStatus_schema,
-    refund_tx_schema
+    sigForRefund_tx_schema
 }

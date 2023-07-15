@@ -2,6 +2,31 @@
  * @swagger
  * components:
  *   schemas:
+ *     Token:
+ *       type: object
+ *       required:
+ *         - _id
+ *         - name
+ *         - symbol
+ *         - deployedAddress
+ *         - network
+ *         - image
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Id of the token
+ *         name:
+ *           type: string
+ *         symbol:
+ *           type: string
+ *         deployedAddress:
+ *           type: string
+ *         network:
+ *           type: number
+ *         image:
+ *           type: string
+ *           description: Url of the token's image
+ * 
  *     Transaction:
  *       type: object
  *       required:
@@ -20,15 +45,37 @@
  *           $ref: '#/components/schemas/Account'
  *         to:
  *           $ref: '#/components/schemas/Account'
+ *         fromValue:
+ *           type: object
+ *           properties:
+ *               token:
+ *                  $ref: '#/components/schemas/Token'
+ *               amount:
+ *                  type: number
  * 
- *       example:
- *         _id: "64ae51d81e05ee3d7dccbe0e"
- *         address: "0x2032C216cE3B726702E2E8E4b78Ef2aeCC4847D1"
+ *         toValue:
+ *           type: object
+ *           properties:
+ *               token:
+ *                  $ref: '#/components/schemas/Token'
+ *               amount:
+ *                  type: number
+ *         transactionType:
+ *           type: string
+ *         status:
+ *           type: string
+ *         timelock:
+ *           type: number
+ *         hashlock:
+ *           type: string
+ *         txId:
+ *           type: string
+ * 
  * 
  * tags:
  *   name: Transaction
  *   description: The Transaction managing API
- * /transactions:
+ * /api/transactions:
  *   get:
  *     summary: Get all exchange transactions in the market by filter
  *     tags: [Transaction]
@@ -67,19 +114,13 @@
  *        description: Number of the page
  *     responses:
  *       200:
- *         description: Login successfully.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                  user:
- *                      $ref: '#/components/schemas/Account'
- *                  accessToken:
- *                      type: string
- *                      example: "eyJhbGciOiJIUzI1N..."
- *       400:
- *         description: Login failed.
+ *                type: array
+ *                items: 
+ *                    $ref: '#/components/schemas/Transaction'
+ *       500:
  *         content:
  *           application/json:
  *             schema:
@@ -87,12 +128,28 @@
  *               properties:
  *                  message:
  *                     type: string
- *                     example: "Bad request"
+ *                     example: "Internal server error"
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ * /api/transactions/general:
+ *   get:
+ *     summary: Get general information about transaction in system
+ *     tags: [Transaction]
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: object
+ *                properties:
+ *                  total:
+ *                      type: number
+ *                  total24h:
+ *                      type: number
+ *                  totalNow:
+ *                      type: number
  *       500:
- *         description: Login failed.
  *         content:
  *           application/json:
  *             schema:
@@ -105,6 +162,278 @@
  *                     type: string
  *                     example: "Error..."
  * 
+ * /api/transactions/rate/:tokenId1/:tokenId2:
+ *   get:
+ *     summary: Get exhange rate between token1 and token2
+ *     tags: [Transaction]
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: number
+ *       500:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/transactions/create:
+ *   post:
+ *     summary: create a new transaction (transfer or exchange)
+ *     tags: [Transaction]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *                 to:
+ *                      type: string
+ *                      description: Id of the receiver (only for exchange transaction)
+ *                 fromValue:
+ *                      type: number
+ *                 fromTokenId:
+ *                      type: string
+ *                      description: Id of the token
+ *                 toValue:
+ *                      type: number
+ *                 toTokenId:
+ *                      type: string
+ *                      description: Id of the token
+ *                 transactionType:
+ *                      type: string
+ *                      description: exchange or transfer
+ *                 timelock:
+ *                      type: number
+ *                      description: time lock in the contract (only for exchange transaction)
+ *                 txId:
+ *                      type: string
+ *                      description: Id of the transaction in contract (only for exchange transaction)
+ *              
+ *     responses:
+ *       201:
+ *         description: Created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transaction'
+ *       400:
+ *         description: Create failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       500:
+ *         description: Create failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/transactions/:txId/accept:
+ *   patch:
+ *     summary: accept a exchange transaction
+ *     tags: [Transaction]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *                 hashlock:
+ *                      type: string
+ *                      description: hashlock for the transaction the contract (only for exchange transaction)
+ *     responses:
+ *       200:
+ *         description: accepted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transaction'
+ *       400:
+ *         description: Accept failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       500:
+ *         description: Accept failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/transactions/:txId/cancel:
+ *   patch:
+ *     summary: Cancel a exchange transaction
+ *     tags: [Transaction]
+ *     responses:
+ *       200:
+ *         description: cancel successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *                $ref: '#/components/schemas/Transaction'
+ *       400:
+ *         description: Cancel failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       500:
+ *         description: Cancel failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/transactions/:txId/progress:
+ *   patch:
+ *     summary: Update status of a exchange transaction
+ *     tags: [Transaction]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *                 status:
+ *                      type: string
+ *                      description: Only accept ['sender accepted', 'receiver withdrawn', 'completed']
+ *     responses:
+ *       200:
+ *         description: updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Transaction'
+ *       400:
+ *         description: Updated failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       500:
+ *         description: Updated failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/transactions/:txId/sig/refund:
+ *   post:
+ *     summary: Get the signature of the admin for refund the transaction
+ *     tags: [Transaction]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *                 txId:
+ *                      type: string
+ *                      description: Id of the transaction in smart contract
+ *                 nonce:
+ *                      type: number
+ *     responses:
+ *       200:
+ *         description: updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: "0x1b928440d1b5cbc066..."
+ *       400:
+ *         description: Get signature failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       500:
+ *         description: Get signature failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
  */
 
 import express from 'express'
@@ -114,7 +443,7 @@ import {
     validate_accept_tx,
     validate_get_exchangeTx, 
     validate_updateExchangeTxStatus,
-    validate_refundTx
+    validate_sigForRefundTx
 } from '../middlewares/validate_tx.js'
 import { verifyToken } from '../middlewares/authMiddleware.js'
 
@@ -141,7 +470,7 @@ router.patch('/:txId/cancel', verifyToken, txController.cancelExchangeTx)
 //update transaction progress (exchange tx)
 router.patch('/:txId/progress', verifyToken, validate_updateExchangeTxStatus, txController.updateExchangeTxStatus)
 
-//refund token from the transaction and return the signature of the admin
-router.post('/:txId/refund', verifyToken, validate_refundTx, txController.refundTx)
+//return the signature of the admin for refund the transaction
+router.post('/:txId/sig/refund', verifyToken, validate_sigForRefundTx, txController.getSignatureForRefund)
 
 export default router

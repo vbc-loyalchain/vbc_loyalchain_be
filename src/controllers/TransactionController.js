@@ -153,10 +153,7 @@ class TransactionController {
 
         try {
             const updatedTx = await this.txService.cancelExchangeTx(txId, req.user);
-            res.status(200).json({
-                updatedTx,
-                message: 'Transaction cancelled'
-            })
+            res.status(200).json(updatedTx)
         } catch (error) {
             if(error.statusCode) {
                 res.status(error.statusCode)
@@ -173,24 +170,29 @@ class TransactionController {
         const newStatus = req.body.status; 
         try {
             const tx = await getById(Transaction, txId);
-            if(tx.status === 'completed' || tx.status === 'canceled') {
-                res.status(400);
-                return next(new Error("Can't update a transaction that has been done"));
-            }
-            
-            if(tx.status === 'receiver accepted' && (newStatus !== "sender accepted" || caller.id !== tx.from.toString())) {
-                res.status(400);
-                return next(new Error("Invalid updation"));
-            }
 
-            if(tx.status === 'sender accepted' && (newStatus !== "receiver withdrawn" || caller.id !== tx.to.toString())) {
-                res.status(400);
-                return next(new Error("Invalid updation"));
-            }
-
-            if(tx.status === 'receiver withdrawn' && (newStatus !== "completed" || caller.id !== tx.from.toString())) {
-                res.status(400);
-                return next(new Error("Invalid updation"));
+            switch(tx.status) {
+                case 'receiver accepted':
+                    if(newStatus !== "sender accepted" || caller.id !== tx.from.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                case 'sender accepted':
+                    if(newStatus !== "receiver withdrawn" || caller.id !== tx.to.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                case 'receiver withdrawn':
+                    if(newStatus !== "completed" || caller.id !== tx.from.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                default:
+                    res.status(400);
+                    return next(new Error("Can't update this transaction's status"));
             }
 
             const updatedTx = await this.txService.updateTx(txId, req.body);
@@ -200,8 +202,8 @@ class TransactionController {
         }
     }
 
-    //[POST] /api/transactions/:txId/refund
-    refundTx = async (req, res, next) => {
+    //[POST] /api/transactions/:txId/sig/refund
+    getSignatureForRefund = async (req, res, next) => {
         const caller = req.user;
         const id = req.params.txId; //id: id of transaction in the database
         const {txId, nonce} = req.body; //txId: id of transaction in blockchain
