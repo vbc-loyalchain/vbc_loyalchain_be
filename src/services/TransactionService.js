@@ -1,6 +1,6 @@
 import CryptoJS from "crypto-js";
 import dotenv from 'dotenv';
-import {create, getById, getOne, getAll, getAllBeforePopulate, updateEntryById} from '../repositories'
+import {create, getById, getOne, getAllBeforePopulate, updateEntryById} from '../repositories'
 import Transaction from "../models/Transaction"
 import User from '../models/User';
 import providers from '../config/providers';
@@ -337,6 +337,7 @@ class TransactionService {
         }
 
         const refunded = await provider.callFunc(SwapTwoChain.abi, SCA, 'isRefunded', [txId], callerAddress)
+
         if(refunded) {
             throw {
                 statusCode: 400,

@@ -1,6 +1,11 @@
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *      bearerAuth:
+ *          type: http
+ *          scheme: bearer
+ *          bearerFormat: JW
  *   schemas:
  *     Account:
  *       type: object
@@ -17,6 +22,7 @@
  *       example:
  *         _id: "64ae51d81e05ee3d7dccbe0e"
  *         address: "0x2032C216cE3B726702E2E8E4b78Ef2aeCC4847D1"
+ * 
  * tags:
  *   name: Auth
  *   description: The Authentication managing API

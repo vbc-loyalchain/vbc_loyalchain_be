@@ -107,7 +107,7 @@
  *      - in: query
  *        name: network
  *        type: number
- *        description: Network of the token
+ *        description: current network
  *      - in: query
  *        name: page
  *        type: number
@@ -162,10 +162,21 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /api/transactions/rate/:tokenId1/:tokenId2:
+ * /api/transactions/rate/{tokenId1}/{tokenId2}:
  *   get:
  *     summary: Get exhange rate between token1 and token2
  *     tags: [Transaction]
+ *     parameters:
+ *       - in: path
+ *         name: tokenId1
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: path
+ *         name: tokenId2
+ *         schema:
+ *           type: string
+ *         required: true
  *     responses:
  *       200:
  *         content:
@@ -189,6 +200,8 @@
  *   post:
  *     summary: create a new transaction (transfer or exchange)
  *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       content:
  *         application/json:
@@ -252,10 +265,18 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /api/transactions/:txId/accept:
+ * /api/transactions/{txId}/accept:
  *   patch:
  *     summary: accept a exchange transaction
  *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: txId
+ *         schema:
+ *           type: string
+ *         required: true
  *     requestBody:
  *       content:
  *         application/json:
@@ -299,10 +320,18 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /api/transactions/:txId/cancel:
+ * /api/transactions/{txId}/cancel:
  *   patch:
  *     summary: Cancel a exchange transaction
  *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: txId
+ *         schema:
+ *           type: string
+ *         required: true
  *     responses:
  *       200:
  *         description: cancel successfully.
@@ -337,10 +366,18 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /api/transactions/:txId/progress:
+ * /api/transactions/{txId}/progress:
  *   patch:
  *     summary: Update status of a exchange transaction
  *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: txId
+ *         schema:
+ *           type: string
+ *         required: true
  *     requestBody:
  *       content:
  *         application/json:
@@ -384,10 +421,18 @@
  *                     type: string
  *                     example: "Error..."
  * 
- * /api/transactions/:txId/sig/refund:
+ * /api/transactions/{txId}/sig/refund:
  *   post:
  *     summary: Get the signature of the admin for refund the transaction
  *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: txId
+ *         schema:
+ *           type: string
+ *         required: true
  *     requestBody:
  *       required: true
  *       content:
@@ -450,10 +495,10 @@ import { verifyToken } from '../middlewares/authMiddleware.js'
 const router = express.Router()
 
 //get all exchange transactions by filter
-router.get('/', validate_get_exchangeTx,  txController.getAllExchangeTx)
+router.get('/', validate_get_exchangeTx, txController.getAllExchangeTx)
 
 //get general info
-router.get('/general',  txController.getGeneralInfo)
+router.get('/general', txController.getGeneralInfo)
 
 //get exchange rate between two token
 router.get('/rate/:tokenId1/:tokenId2', txController.getExchangeRate)
