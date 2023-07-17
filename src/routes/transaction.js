@@ -111,7 +111,7 @@
  *      - in: query
  *        name: page
  *        type: number
- *        description: Number of the page
+ *        description: Page number
  *     responses:
  *       200:
  *         content:
@@ -251,6 +251,8 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         description: Create failed.
  *         content:
@@ -306,6 +308,8 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         description: Accept failed.
  *         content:
@@ -352,6 +356,8 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         description: Cancel failed.
  *         content:
@@ -407,6 +413,8 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         description: Updated failed.
  *         content:
@@ -466,6 +474,8 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         description: Get signature failed.
  *         content:

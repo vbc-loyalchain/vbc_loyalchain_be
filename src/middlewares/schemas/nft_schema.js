@@ -8,6 +8,7 @@ const get_allNFTInMarket_schema = Joi.object({
     network: Joi.number(),
     upperBoundPrice: Joi.number(),
     lowerBoundPrice: Joi.number(),
+    isSelling: Joi.boolean(),
     page: Joi.number().min(1).default(1)
 })
 

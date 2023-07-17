@@ -1,6 +1,19 @@
 /**
  * @swagger
  * components:
+ *   responses:
+ *      UnauthorizedError:
+ *          content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Access token is missing or invalid"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
  *   securitySchemes:
  *      bearerAuth:
  *          type: http

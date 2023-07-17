@@ -87,6 +87,10 @@ class UserService {
             deleted: false
         };
 
+        if(dto.isSelling !== undefined) {
+            filterObj.isSelling = dto.isSelling;
+        }
+
         const options = {
             skip: (parseInt(dto.page) - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,

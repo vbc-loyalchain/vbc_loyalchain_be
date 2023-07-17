@@ -13,7 +13,7 @@ class UserController {
         return res.status(200).json(this.userService.getUser())
     }
 
-    //GET /api/users/transactions
+    //GET /api/users/tx
     getMyTx = async (req, res, next) => {
         const fromValueUp = parseInt(req.query.fromValueUp);
         const fromValueDown = parseInt(req.query.fromValueDown);
@@ -54,7 +54,7 @@ class UserController {
         }
     }
 
-    //[GET] /api/users/nfts
+    //[GET] /api/users/nft
     getMyNFT = async (req, res, next) => {
         try {
             const myNFT = await this.userService.getMyNFT(req.user.id, req.query);
