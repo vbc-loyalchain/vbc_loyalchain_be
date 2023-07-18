@@ -115,6 +115,69 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ * 
+ * /api/users/recently_transacted:
+ *   get:
+ *     summary: Get users who recently transacted with a user
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: array
+ *                items: 
+ *                    type: string
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
+ * /api/users/mostly_transacted:
+ *   get:
+ *     summary: Get users who mostly transacted with a user
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *                type: array
+ *                items: 
+ *                    type: object
+ *                    properties:
+ *                      address:
+ *                          type: string
+ *                      count:
+ *                          type: number
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
  */
 
 import express from 'express'
@@ -131,6 +194,8 @@ router.get('/tx', verifyToken, validate_get_myTx, userController.getMyTx);
 //get all nfts from a user by filter
 router.get('/nft', verifyToken, validate_getAllNFTInMarket_nft, userController.getMyNFT);
 
-router.get('/:address', verifyToken, userController.getUser);
+router.get('/recently_transacted', verifyToken, userController.getUsersRecentlyTransacted)
+
+router.get('/mostly_transacted', verifyToken, userController.getUsersMostlyTransacted)
 
 export default router

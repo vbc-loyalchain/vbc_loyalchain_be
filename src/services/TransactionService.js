@@ -9,7 +9,7 @@ import {SwapTwoChainContract} from '../config/variables';
 import {SwapTwoChain} from '../config/contract/SwapTwoChain';
 dotenv.config();
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 12;
 
 class TransactionService {
     getGeneralInfo = async () => {

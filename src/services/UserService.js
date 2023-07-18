@@ -1,9 +1,9 @@
 import { getAllBeforePopulate } from "../repositories";
-import User from "../models/User";
 import NFT from "../models/NFT";
 import Transaction from "../models/Transaction";
+import mongoose from "mongoose";
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 12;
 
 class UserService {
     getUser() {
@@ -107,6 +107,90 @@ class UserService {
         }
 
         return myNFT;
+    }
+
+    /**
+     * @param {string} userId: ID of the user calling the request 
+     */
+    getUsersRecentlyTransacted = async (userId) => {
+        let usersRecentlyTransacted = await Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'transfer',
+                    from: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "to",
+                    foreignField: "_id",
+                    as: "to",
+                }
+            },
+            {
+                $unwind: '$to'
+            },
+            {
+                $group: {
+                    _id: '$to.address',
+                    latest: { $last: '$createdAt' }
+                }
+            },
+            {
+                $sort: {
+                    latest: -1
+                }
+            },
+            {
+                $limit: 10
+            }
+        ]).exec();
+
+        usersRecentlyTransacted = usersRecentlyTransacted.map(user => user._id);
+        return usersRecentlyTransacted;
+    }
+
+    getUsersMostlyTransacted = async (userId) => {
+        let usersMostlyTransacted = await Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'transfer',
+                    from: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "to",
+                    foreignField: "_id",
+                    as: "to",
+                }
+            },
+            {
+                $unwind: '$to'
+            },
+            {
+                $group: {
+                    _id: '$to.address',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: {
+                    count: -1
+                }
+            },
+            {
+                $limit: 10
+            }
+        ]).exec();
+
+        usersMostlyTransacted = usersMostlyTransacted.map(user => ({
+            address: user._id,
+            count: user.count
+        }));
+        return usersMostlyTransacted;
     }
 }
 

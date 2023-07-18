@@ -55,6 +55,28 @@ class UserController {
             next(error)
         }
     }
+
+    //[GET] /api/users/recently_transact
+    getUsersRecentlyTransacted = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const recently_users = await this.userService.getUsersRecentlyTransacted(user.id);
+            res.status(200).json(recently_users);
+        } catch (error) {
+            next(error);
+        } 
+    }
+
+    //[GET] /api/users/mostly_transacted
+    getUsersMostlyTransacted = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const mostly_users = await this.userService.getUsersMostlyTransacted(user.id);
+            res.status(200).json(mostly_users);
+        } catch (error) {
+            next(error)
+        }
+    }
 }
 
 export default new UserController(userService)

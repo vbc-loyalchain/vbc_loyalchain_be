@@ -5,7 +5,7 @@ import providers from "../config/providers";
 import {ERC20TokenContract} from '../config/contract/ERC20Token';
 import {ERC721NftContract} from '../config/contract/ERC721Nft';
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 12;
 
 class NFTService {
     getAllNFTInMarket = async (dto) => {
