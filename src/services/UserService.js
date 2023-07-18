@@ -68,8 +68,7 @@ class UserService {
     }
 
     getMyNFT = async (userId, dto) => {
-        const upperBoundPrice = dto.upperBoundPrice ? parseInt(dto.upperBoundPrice) : Infinity;
-        const lowerBoundPrice = dto.lowerBoundPrice ? parseInt(dto.lowerBoundPrice) : 0;
+        const {upperBoundPrice, lowerBoundPrice} = dto;  
 
         if(upperBoundPrice < lowerBoundPrice) {
             throw {
@@ -92,7 +91,7 @@ class UserService {
         }
 
         const options = {
-            skip: (parseInt(dto.page) - 1) * PAGE_SIZE,
+            skip: (dto.page - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,
             sort: {
                 createdAt: -1
@@ -104,7 +103,7 @@ class UserService {
         ]);
 
         if(dto.network) {
-            myNFT = myNFT.filter(nft => nft.enterprise.network === parseInt(dto.network));
+            myNFT = myNFT.filter(nft => nft.enterprise.network === dto.network);
         }
 
         return myNFT;

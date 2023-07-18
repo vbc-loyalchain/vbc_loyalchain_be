@@ -67,25 +67,28 @@ class TransactionService {
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
         if(toTokenId) filterQuery['toValue.token'] = toTokenId;
 
-        const options = {
-            skip: (page - 1) * PAGE_SIZE,
-            limit: PAGE_SIZE,
-            sort: {
-                createdAt: -1
-            }
-        };
-
-        let allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, options).populate([
+        let allExchangeTx = await getAllBeforePopulate(Transaction, filterQuery, null, {}).populate([
             {path: 'from', select: '_id address'},
             {path: 'to', select: '_id address'},
             {path: 'fromValue.token', select: '-createdAt -updatedAt -__v'},
             {path: 'toValue.token', select: '-createdAt -updatedAt -__v'},
-        ]);
-        
-        //get all exchange tx that user can buy in this chainId
-        if(network !== -1){
-            allExchangeTx = allExchangeTx.filter(tx => tx.toValue.token.network === network);
-        }
+        ])
+        .sort('-createdAt');
+
+        const from = (page - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE;
+
+        allExchangeTx = allExchangeTx.filter(tx => {
+            if(network > 0) {
+                return tx.fromValue.token.network === network && tx.toValue.token.network === network;
+            }
+            if(network === 0) {
+                return tx.fromValue.token.network !== tx.toValue.token.network;
+            }
+            return true;
+        }).slice(from, to);
+
+        console.log(allExchangeTx.length);
 
         return allExchangeTx;
     }

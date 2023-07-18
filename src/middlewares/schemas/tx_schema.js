@@ -26,11 +26,11 @@ const accept_tx_schema = Joi.object({
 //get all exchange transactions in the market place
 const get_exchangeTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
-    fromValueUp: Joi.number().min(0).default(1000000),
+    fromValueUp: Joi.number().min(0).default(Infinity),
     fromValueDown: Joi.number().min(0).default(0),
 
     toTokenId: Joi.string().min(0),
-    toValueUp: Joi.number().min(0).default(1000000),
+    toValueUp: Joi.number().min(0).default(Infinity),
     toValueDown: Joi.number().min(0).default(0),
     network: Joi.number(),
     page: Joi.number().min(1).default(1)
@@ -39,11 +39,11 @@ const get_exchangeTx_schema = Joi.object({
 //get all my transactions
 const get_myTx_schema = Joi.object({
     fromTokenId: Joi.string().min(0),
-    fromValueUp: Joi.number().min(0).default(1000000),
+    fromValueUp: Joi.number().min(0).default(Infinity),
     fromValueDown: Joi.number().min(0).default(0),
 
     toTokenId: Joi.string().min(0),
-    toValueUp: Joi.number().min(0).default(1000000),
+    toValueUp: Joi.number().min(0).default(Infinity),
     toValueDown: Joi.number().min(0).default(0),
 
     transactionType: Joi.string().valid('all', 'transfer', 'exchange').default('all'),

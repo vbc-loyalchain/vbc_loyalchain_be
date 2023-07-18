@@ -15,15 +15,14 @@ class UserController {
 
     //GET /api/users/tx
     getMyTx = async (req, res, next) => {
-        const fromValueUp = parseInt(req.query.fromValueUp);
-        const fromValueDown = parseInt(req.query.fromValueDown);
-        const toValueUp = parseInt(req.query.toValueUp);
-        const toValueDown = parseInt(req.query.toValueDown);
-        const page = parseInt(req.query.page);
+        const {
+            fromValueUp, 
+            fromValueDown, 
+            toValueUp, 
+            toValueDown, 
+        } = req.query;
         let {
-            fromTokenId,
-            toTokenId,
-            transactionType
+            
         } = req.query;
 
         try {
@@ -34,18 +33,7 @@ class UserController {
             
             const myTx = await this.userService.getMyTx(
                 req.user.id,
-                {
-                    fromTokenId,
-                    fromValueUp,
-                    fromValueDown,
-
-                    toTokenId,
-                    toValueUp,
-                    toValueDown,
-
-                    transactionType,
-                    page
-                }
+                req.query
             );
 
             res.status(200).json(myTx);

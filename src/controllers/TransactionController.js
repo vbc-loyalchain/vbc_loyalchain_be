@@ -19,18 +19,18 @@ class TransactionController {
 
     //[GET] /api/transactions/
     getAllExchangeTx = async (req, res, next) => {
-        const fromValueUp = parseInt(req.query.fromValueUp);
-        const fromValueDown = parseInt(req.query.fromValueDown);
-        const toValueUp = parseInt(req.query.toValueUp);
-        const toValueDown = parseInt(req.query.toValueDown);
-        const network = req.query.network ? parseInt(req.query.network) : -1;
-        const page = parseInt(req.query.page);
+        const {
+            fromValueUp, 
+            fromValueDown, 
+            toValueUp, 
+            toValueDown, 
+            page
+        } = req.query;
+        const network = req.query.network !== undefined ? req.query.network : -1;
         let {
             fromTokenId,
             toTokenId
         } = req.query;
-
-        console.log(fromValueUp, fromValueDown, toValueUp, toValueDown)
 
         try {
             if(fromValueUp < fromValueDown || toValueUp < toValueDown) {

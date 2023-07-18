@@ -6,8 +6,8 @@ import Joi from 'joi';
  */
 const get_allNFTInMarket_schema = Joi.object({
     network: Joi.number(),
-    upperBoundPrice: Joi.number(),
-    lowerBoundPrice: Joi.number(),
+    upperBoundPrice: Joi.number().default(Infinity),
+    lowerBoundPrice: Joi.number().default(0),
     isSelling: Joi.boolean(),
     page: Joi.number().min(1).default(1)
 })
