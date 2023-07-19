@@ -43,10 +43,11 @@ class UserService {
 
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
         if(toTokenId) filterQuery['toValue.token'] = toTokenId;
-        if(inProgress) filterQuery['status'] = {
-            $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+        if(inProgress) {
+            filterQuery['status'] = {
+                $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+            }
         }
-
         const options = {
             skip: (page - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,
