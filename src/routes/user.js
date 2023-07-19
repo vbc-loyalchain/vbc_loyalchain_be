@@ -36,6 +36,10 @@
  *        type: number
  *        description: Lowerbound amount of the token want to buy
  *      - in: query
+ *        name: inProgress
+ *        type: boolean
+ *        description: Filter all transactions is in progress (optional)
+ *      - in: query
  *        name: transactionType
  *        type: string
  *        description: transfer or exchange
