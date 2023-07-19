@@ -6,12 +6,6 @@ import mongoose from "mongoose";
 const PAGE_SIZE = 12;
 
 class UserService {
-    getUser() {
-        return {
-            name: 'admin',
-            password: '123'
-        }
-    }
 
     getMyTx = async (userId, dto) => {
         const {
@@ -24,6 +18,7 @@ class UserService {
             toValueDown,
 
             transactionType,
+            inProgress,
             page
         } = dto;
 
@@ -48,6 +43,9 @@ class UserService {
 
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
         if(toTokenId) filterQuery['toValue.token'] = toTokenId;
+        if(inProgress) filterQuery['status'] = {
+            $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+        }
 
         const options = {
             skip: (page - 1) * PAGE_SIZE,
