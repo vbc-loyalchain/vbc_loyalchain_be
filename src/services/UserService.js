@@ -45,7 +45,7 @@ class UserService {
         if(toTokenId) filterQuery['toValue.token'] = toTokenId;
         if(inProgress) {
             filterQuery['status'] = {
-                $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+                $in: ['pending', 'receiver accepted', 'sender accepted', 'receiver withdrawn']
             }
         }
         const options = {
