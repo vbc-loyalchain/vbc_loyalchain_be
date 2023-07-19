@@ -13,17 +13,16 @@ class UserController {
         return res.status(200).json(this.userService.getUser())
     }
 
-    //GET /api/users/transactions
+    //GET /api/users/tx
     getMyTx = async (req, res, next) => {
-        const fromValueUp = parseInt(req.query.fromValueUp);
-        const fromValueDown = parseInt(req.query.fromValueDown);
-        const toValueUp = parseInt(req.query.toValueUp);
-        const toValueDown = parseInt(req.query.toValueDown);
-        const page = parseInt(req.query.page);
+        const {
+            fromValueUp, 
+            fromValueDown, 
+            toValueUp, 
+            toValueDown, 
+        } = req.query;
         let {
-            fromTokenId,
-            toTokenId,
-            transactionType
+            
         } = req.query;
 
         try {
@@ -34,18 +33,7 @@ class UserController {
             
             const myTx = await this.userService.getMyTx(
                 req.user.id,
-                {
-                    fromTokenId,
-                    fromValueUp,
-                    fromValueDown,
-
-                    toTokenId,
-                    toValueUp,
-                    toValueDown,
-
-                    transactionType,
-                    page
-                }
+                req.query
             );
 
             res.status(200).json(myTx);
@@ -54,7 +42,7 @@ class UserController {
         }
     }
 
-    //[GET] /api/users/nfts
+    //[GET] /api/users/nft
     getMyNFT = async (req, res, next) => {
         try {
             const myNFT = await this.userService.getMyNFT(req.user.id, req.query);
@@ -64,6 +52,28 @@ class UserController {
                 res.status(error.statusCode);
                 return next(error.error);
             }
+            next(error)
+        }
+    }
+
+    //[GET] /api/users/recently_transact
+    getUsersRecentlyTransacted = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const recently_users = await this.userService.getUsersRecentlyTransacted(user.id);
+            res.status(200).json(recently_users);
+        } catch (error) {
+            next(error);
+        } 
+    }
+
+    //[GET] /api/users/mostly_transacted
+    getUsersMostlyTransacted = async (req, res, next) => {
+        try {
+            const user = req.user;
+            const mostly_users = await this.userService.getUsersMostlyTransacted(user.id);
+            res.status(200).json(mostly_users);
+        } catch (error) {
             next(error)
         }
     }

@@ -19,18 +19,18 @@ class TransactionController {
 
     //[GET] /api/transactions/
     getAllExchangeTx = async (req, res, next) => {
-        const fromValueUp = parseInt(req.query.fromValueUp);
-        const fromValueDown = parseInt(req.query.fromValueDown);
-        const toValueUp = parseInt(req.query.toValueUp);
-        const toValueDown = parseInt(req.query.toValueDown);
-        const network = req.query.network ? parseInt(req.query.network) : -1;
-        const page = parseInt(req.query.page);
+        const {
+            fromValueUp, 
+            fromValueDown, 
+            toValueUp, 
+            toValueDown, 
+            page
+        } = req.query;
+        const network = req.query.network !== undefined ? req.query.network : -1;
         let {
             fromTokenId,
             toTokenId
         } = req.query;
-
-        console.log(fromValueUp, fromValueDown, toValueUp, toValueDown)
 
         try {
             if(fromValueUp < fromValueDown || toValueUp < toValueDown) {
@@ -68,7 +68,7 @@ class TransactionController {
         }
     }
 
-    //POST /api/transactions/create
+    //[POST] /api/transactions/create
     createNewTransaction = async (req, res, next) => {
         const {
             to,
@@ -78,8 +78,7 @@ class TransactionController {
             toTokenId,
             transactionType,
             timelock,
-            hashlock,
-            txIdFrom // id of transaction in smart contract
+            txId // id of transaction in smart contract
         } = req.body;
 
         const user = req.user;
@@ -89,7 +88,7 @@ class TransactionController {
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !hashlock || !txIdFrom))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !txId))  {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
@@ -120,8 +119,7 @@ class TransactionController {
             }
             else{
                 paramObj['timelock'] = timelock;
-                paramObj['hashlock'] = hashlock;
-                paramObj['txIdFrom'] = txIdFrom;
+                paramObj['txId'] = txId;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);
@@ -130,12 +128,12 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/:txId/accept
+    //[PATCH] /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {txIdTo} = req.body;
+        const {hashlock} = req.body
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, req.user, txIdTo);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, hashlock, req.user);
             res.status(200).json({
                 updatedTx,
                 message: 'Transaction completed'
@@ -149,16 +147,13 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/:txId/cancel
+    //[PATCH] /api/transactions/:txId/cancel
     cancelExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
 
         try {
             const updatedTx = await this.txService.cancelExchangeTx(txId, req.user);
-            res.status(200).json({
-                updatedTx,
-                message: 'Transaction cancelled'
-            })
+            res.status(200).json(updatedTx)
         } catch (error) {
             if(error.statusCode) {
                 res.status(error.statusCode)
@@ -168,18 +163,93 @@ class TransactionController {
         }
     }
 
-    //PATCH /api/transactions/:txId/progress
-    updateExchangeTx = async (req, res, next) => {
+    //[PATCH] /api/transactions/:txId/progress
+    updateExchangeTxStatus = async (req, res, next) => {
         const {txId} = req.params;
+        const caller = req.user;
+        const newStatus = req.body.status; 
         try {
             const tx = await getById(Transaction, txId);
-            if(tx.status === 'completed' || tx.status === 'canceled') {
-                return next(new Error("Can't update a transaction that has been done"))
+
+            switch(tx.status) {
+                case 'receiver accepted':
+                    if(newStatus !== "sender accepted" || caller.id !== tx.from.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                case 'sender accepted':
+                    if(newStatus !== "receiver withdrawn" || caller.id !== tx.to.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                case 'receiver withdrawn':
+                    if(newStatus !== "completed" || caller.id !== tx.from.toString()){
+                        res.status(400);
+                        return next(new Error("Invalid updation"));
+                    }
+                    break;
+                default:
+                    res.status(400);
+                    return next(new Error("Can't update this transaction's status"));
             }
 
             const updatedTx = await this.txService.updateTx(txId, req.body);
             res.status(200).json(updatedTx);
         } catch (error) {
+            next(error);
+        }
+    }
+
+    //[POST] /api/transactions/:txId/sig/refund
+    getSignatureForRefund = async (req, res, next) => {
+        const caller = req.user;
+        const id = req.params.txId; //id: id of transaction in the database
+        const {txId, nonce} = req.body; //txId: id of transaction in blockchain
+
+        try {
+            let tx = await getById(Transaction, id);
+            tx = await tx.populate([
+                {path: 'fromValue.token', select: 'network'},
+                {path: 'toValue.token', select: 'network'}
+            ])
+
+            if(tx.from.toString() !== caller.id && tx.to.toString() !== caller.id) {
+                res.status(403);
+                return next(new Error('You are not the sender or receiver of this transaction'));
+            }
+
+            if(tx.txId !== txId) {
+                res.status(400);
+                return next(new Error('Invalid transaction information'));
+            }
+
+            switch(tx.status) {
+                case 'receiver accepted':
+                    if(tx.to.toString() !== caller.id) {
+                        res.status(403);
+                        return next(new Error('Now only receiver can refund transaction'));
+                    }
+                    break;
+                case 'sender accepted':
+                    break;
+                case 'canceled':
+                    break;
+                default:
+                    res.status(403);
+                    return next(new Error('Cannot refund from the transaction'));
+            }
+
+            const network = tx.from.toString() === caller.id ? tx.fromValue.token.network : tx.toValue.token.network;
+            const signature = await this.txService.getSignatureRefund(txId, caller.address, nonce, network);
+
+            res.status(200).json(signature);
+        } catch (error) {
+            if(error.statusCode){
+                res.status(error.statusCode);
+                return next(error.error);
+            }
             next(error);
         }
     }

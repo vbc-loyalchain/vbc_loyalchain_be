@@ -5,12 +5,11 @@ import providers from "../config/providers";
 import {ERC20TokenContract} from '../config/contract/ERC20Token';
 import {ERC721NftContract} from '../config/contract/ERC721Nft';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 12;
 
 class NFTService {
     getAllNFTInMarket = async (dto) => {
-        const upperBoundPrice = dto.upperBoundPrice ? parseInt(dto.upperBoundPrice) : Infinity;
-        const lowerBoundPrice = dto.lowerBoundPrice ? parseInt(dto.lowerBoundPrice) : 0;
+        const {upperBoundPrice, lowerBoundPrice} = dto;
 
         if(upperBoundPrice < lowerBoundPrice) {
             throw {
@@ -29,7 +28,7 @@ class NFTService {
         };
 
         const options = {
-            skip: (parseInt(dto.page) - 1) * PAGE_SIZE,
+            skip: (dto.page - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,
             sort: {
                 createdAt: -1
@@ -42,7 +41,7 @@ class NFTService {
         ]);
 
         if(dto.network) {
-            allNFTInMarket = allNFTInMarket.filter(nft => nft.enterprise.network === parseInt(dto.network));
+            allNFTInMarket = allNFTInMarket.filter(nft => nft.enterprise.network === dto.network);
         }
 
         return allNFTInMarket;

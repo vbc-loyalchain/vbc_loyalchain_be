@@ -1,9 +1,9 @@
 import { getAllBeforePopulate } from "../repositories";
-import User from "../models/User";
 import NFT from "../models/NFT";
 import Transaction from "../models/Transaction";
+import mongoose from "mongoose";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 12;
 
 class UserService {
     getUser() {
@@ -68,8 +68,7 @@ class UserService {
     }
 
     getMyNFT = async (userId, dto) => {
-        const upperBoundPrice = dto.upperBoundPrice ? parseInt(dto.upperBoundPrice) : Infinity;
-        const lowerBoundPrice = dto.lowerBoundPrice ? parseInt(dto.lowerBoundPrice) : 0;
+        const {upperBoundPrice, lowerBoundPrice} = dto;  
 
         if(upperBoundPrice < lowerBoundPrice) {
             throw {
@@ -87,8 +86,12 @@ class UserService {
             deleted: false
         };
 
+        if(dto.isSelling !== undefined) {
+            filterObj.isSelling = dto.isSelling;
+        }
+
         const options = {
-            skip: (parseInt(dto.page) - 1) * PAGE_SIZE,
+            skip: (dto.page - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,
             sort: {
                 createdAt: -1
@@ -100,10 +103,94 @@ class UserService {
         ]);
 
         if(dto.network) {
-            myNFT = myNFT.filter(nft => nft.enterprise.network === parseInt(dto.network));
+            myNFT = myNFT.filter(nft => nft.enterprise.network === dto.network);
         }
 
         return myNFT;
+    }
+
+    /**
+     * @param {string} userId: ID of the user calling the request 
+     */
+    getUsersRecentlyTransacted = async (userId) => {
+        let usersRecentlyTransacted = await Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'transfer',
+                    from: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "to",
+                    foreignField: "_id",
+                    as: "to",
+                }
+            },
+            {
+                $unwind: '$to'
+            },
+            {
+                $group: {
+                    _id: '$to.address',
+                    latest: { $last: '$createdAt' }
+                }
+            },
+            {
+                $sort: {
+                    latest: -1
+                }
+            },
+            {
+                $limit: 10
+            }
+        ]).exec();
+
+        usersRecentlyTransacted = usersRecentlyTransacted.map(user => user._id);
+        return usersRecentlyTransacted;
+    }
+
+    getUsersMostlyTransacted = async (userId) => {
+        let usersMostlyTransacted = await Transaction.aggregate([
+            {
+                $match: {
+                    transactionType: 'transfer',
+                    from: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "to",
+                    foreignField: "_id",
+                    as: "to",
+                }
+            },
+            {
+                $unwind: '$to'
+            },
+            {
+                $group: {
+                    _id: '$to.address',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: {
+                    count: -1
+                }
+            },
+            {
+                $limit: 10
+            }
+        ]).exec();
+
+        usersMostlyTransacted = usersMostlyTransacted.map(user => ({
+            address: user._id,
+            count: user.count
+        }));
+        return usersMostlyTransacted;
     }
 }
 

@@ -37,6 +37,8 @@
     "mongoose": "^7.3.0",
     "morgan": "^1.10.0",
     "redis": "^4.6.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "web3": "^1.8.0"
   }
 }

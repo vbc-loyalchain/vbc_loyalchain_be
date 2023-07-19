@@ -15,7 +15,7 @@ class AuthController {
                 isCreated
             } = await this.authService.login(req.body);
 
-            res.cookie(accessToken, refreshToken, {
+            res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: true,
                 path: '/',
@@ -37,11 +37,10 @@ class AuthController {
         }
     }
 
-    //[POST] /api/auth/token
+    //[GET] /api/auth/token
     reGenerateToken = async (req, res, next) => {
         try {
-            const {accessToken} = req.body;
-            const refreshToken = req.cookies[accessToken];
+            const refreshToken = req.cookies['refreshToken'];
             if(!refreshToken) {
                 res.status(403);
                 return next(new Error('Refresh token expired'));
@@ -49,17 +48,14 @@ class AuthController {
 
             const {newAccessToken, newRefreshToken} = this.authService.reGenerateAccessToken(refreshToken);
 
-            res.clearCookie(accessToken)
-            res.cookie(newAccessToken, newRefreshToken, {
+            res.cookie('refreshToken', newRefreshToken, {
                 httpOnly: true,
                 secure: true,
                 path: '/',
                 sameSite: 'strict',
             })
 
-            res.status(200).json({
-                accessToken: newAccessToken
-            })
+            res.status(200).json(newAccessToken);
         } catch (error) {
             next(error)
         }
