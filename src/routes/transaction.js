@@ -64,8 +64,6 @@
  *           type: string
  *         status:
  *           type: string
- *         timelock:
- *           type: number
  *         hashlock:
  *           type: string
  *         txId:
@@ -224,9 +222,6 @@
  *                 transactionType:
  *                      type: string
  *                      description: exchange or transfer
- *                 timelock:
- *                      type: number
- *                      description: time lock in the contract (only for exchange transaction)
  *                 txId:
  *                      type: string
  *                      description: Id of the transaction in contract (only for exchange transaction)
@@ -285,6 +280,9 @@
  *           schema:
  *             type: object
  *             properties:
+ *                 key:
+ *                      type: string
+ *                      description: key of the transaction the contract (only for exchange transaction)
  *                 hashlock:
  *                      type: string
  *                      description: hashlock for the transaction the contract (only for exchange transaction)

@@ -77,7 +77,7 @@ class TransactionController {
             toValue, 
             toTokenId,
             transactionType,
-            timelock,
+            //timelock,
             txId // id of transaction in smart contract
         } = req.body;
 
@@ -88,7 +88,7 @@ class TransactionController {
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !txId))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !txId))  {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
@@ -118,7 +118,7 @@ class TransactionController {
                 newTransaction = await this.txService.createTransferTx(paramObj);
             }
             else{
-                paramObj['timelock'] = timelock;
+                //paramObj['timelock'] = timelock;
                 paramObj['txId'] = txId;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
@@ -131,12 +131,12 @@ class TransactionController {
     //[PATCH] /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {hashlock} = req.body
+        const {key, hashlock} = req.body
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, hashlock, req.user);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, key, hashlock, req.user);
             res.status(200).json({
                 updatedTx,
-                message: 'Transaction completed'
+                message: 'Accepted successfully'
             })
         } catch (error) {
             if(error.statusCode) {

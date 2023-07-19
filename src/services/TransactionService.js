@@ -191,7 +191,7 @@ class TransactionService {
             fromTokenId,
             toValue, 
             toTokenId,
-            timelock,
+            //timelock,
             txId
         } = body;
         
@@ -208,7 +208,7 @@ class TransactionService {
             },
             transactionType: 'exchange',
             status: 'pending',
-            timelock,
+            //timelock,
             txId
         });
 
@@ -224,20 +224,21 @@ class TransactionService {
 
     /**
      * @param {string} txId - Id of the transaction in database
+     * @param {string} key - secret key for tx
      * @param {string} hashlock - Hash of the secret key for tx
      * @param {object} receiver - request's sender (receiver)
      */
-    acceptExchangeTx = async (txId, hashlock, receiver) => {
+    acceptExchangeTx = async (txId, key, hashlock, receiver) => {
         let tx = await getById(Transaction, txId);
         tx = await tx.populate([
             {path: 'fromValue.token', select: 'network'},
             {path: 'toValue.token', select: 'network'}
         ])
 
-        if(tx.fromValue.token.network !== tx.toValue.token.network && !hashlock) {
+        if(tx.fromValue.token.network !== tx.toValue.token.network && (!hashlock || !key)) {
             throw {
                 statusCode: 400,
-                error: new Error("Hashlock is required")
+                error: new Error("Hashlock and Key are required")
             }
         }
 
@@ -260,10 +261,11 @@ class TransactionService {
         const updateObj = {
             to: receiver.id,
             status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'receiver accepted',
-            hashlock,
+            key,
+            hashlock
         };
 
-        const updatedTx = await this.updateTx(txId, updateObj)
+        const updatedTx = await this.updateTx(txId, updateObj);
 
         return updatedTx;
     }
@@ -330,21 +332,12 @@ class TransactionService {
         const provider = providers[network];
         const SCA = SwapTwoChainContract[network];
 
-        const isEndLock = await provider.callFunc(SwapTwoChain.abi, SCA, 'isEndLockContract', [txId], callerAddress);
+        const isInProgress = await provider.callFunc(SwapTwoChain.abi, SCA, 'isInProgress', [txId], callerAddress)
 
-        if(!isEndLock) {
+        if(!isInProgress) {
             throw {
                 statusCode: 400,
-                error: new Error('Too early to refund from smart contract')
-            }
-        }
-
-        const refunded = await provider.callFunc(SwapTwoChain.abi, SCA, 'isRefunded', [txId], callerAddress)
-
-        if(refunded) {
-            throw {
-                statusCode: 400,
-                error: new Error('You have been refunded this transaction')
+                error: new Error('Cannot refund from the transaction that has been done')
             }
         }
 
