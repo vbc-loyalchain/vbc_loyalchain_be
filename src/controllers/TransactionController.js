@@ -77,8 +77,7 @@ class TransactionController {
             toValue, 
             toTokenId,
             transactionType,
-            //timelock,
-            txId // id of transaction in smart contract
+            contractIdFrom // id of transaction in smart contract
         } = req.body;
 
         const user = req.user;
@@ -88,19 +87,24 @@ class TransactionController {
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !txId))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to)) {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
 
         const [fromToken, toToken] = await Promise.all([
             getById(Token, fromTokenId),
-            getById(Token, fromTokenId)
+            getById(Token, toTokenId)
         ])
 
         if(!fromToken || !toToken) {
             res.status(400);
             return next(new Error('Invalid token'));
+        }
+
+        if(transactionType === 'exchange' && fromToken.network === toToken.network && !contractIdFrom)  {
+            res.status(400);
+            return next(new Error('Invalid request body for exchange transaction'));
         }
 
         try {
@@ -118,8 +122,7 @@ class TransactionController {
                 newTransaction = await this.txService.createTransferTx(paramObj);
             }
             else{
-                //paramObj['timelock'] = timelock;
-                paramObj['txId'] = txId;
+                paramObj['contractIdFrom'] = contractIdFrom;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);
@@ -131,9 +134,8 @@ class TransactionController {
     //[PATCH] /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {key, hashlock} = req.body
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, key, hashlock, req.user);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, req.body, req.user);
             res.status(200).json({
                 updatedTx,
                 message: 'Accepted successfully'
@@ -167,25 +169,27 @@ class TransactionController {
     updateExchangeTxStatus = async (req, res, next) => {
         const {txId} = req.params;
         const caller = req.user;
-        const newStatus = req.body.status; 
+        const newStatus = req.body.status;
+        const contractIdFrom = req.body.contractIdFrom;
+        
         try {
             const tx = await getById(Transaction, txId);
 
             switch(tx.status) {
                 case 'receiver accepted':
-                    if(newStatus !== "sender accepted" || caller.id !== tx.from.toString()){
+                    if(newStatus !== "sender accepted" || caller.id !== tx.from.toString() || !contractIdFrom){
                         res.status(400);
                         return next(new Error("Invalid updation"));
                     }
                     break;
                 case 'sender accepted':
-                    if(newStatus !== "receiver withdrawn" || caller.id !== tx.to.toString()){
+                    if(newStatus !== "receiver withdrawn" || caller.id !== tx.to.toString() || contractIdFrom){
                         res.status(400);
                         return next(new Error("Invalid updation"));
                     }
                     break;
                 case 'receiver withdrawn':
-                    if(newStatus !== "completed" || caller.id !== tx.from.toString()){
+                    if(newStatus !== "completed" || caller.id !== tx.from.toString() || contractIdFrom){
                         res.status(400);
                         return next(new Error("Invalid updation"));
                     }
@@ -205,24 +209,32 @@ class TransactionController {
     //[POST] /api/transactions/:txId/sig/refund
     getSignatureForRefund = async (req, res, next) => {
         const caller = req.user;
-        const id = req.params.txId; //id: id of transaction in the database
-        const {txId, nonce} = req.body; //txId: id of transaction in blockchain
+        const {txId} = req.params; // id of transaction in the database
+        const {contractId, nonce} = req.body; // id of transaction in blockchain
 
         try {
-            let tx = await getById(Transaction, id);
+            let tx = await getById(Transaction, txId);
             tx = await tx.populate([
                 {path: 'fromValue.token', select: 'network'},
                 {path: 'toValue.token', select: 'network'}
             ])
 
-            if(tx.from.toString() !== caller.id && tx.to.toString() !== caller.id) {
-                res.status(403);
-                return next(new Error('You are not the sender or receiver of this transaction'));
-            }
-
-            if(tx.txId !== txId) {
-                res.status(400);
-                return next(new Error('Invalid transaction information'));
+            switch(caller.id) {
+                case tx.from.toString():
+                    if(tx.contractIdFrom !== contractId) {
+                        res.status(400);
+                        return next(new Error('Invalid transaction information'));
+                    }
+                    break;
+                case tx.to.toString():
+                    if(tx.contractIdTo !== contractId) {
+                        res.status(400);
+                        return next(new Error('Invalid transaction information'));
+                    }
+                    break;
+                default:
+                    res.status(403);
+                    return next(new Error('You are not the sender or receiver of this transaction'));
             }
 
             switch(tx.status) {
@@ -242,7 +254,7 @@ class TransactionController {
             }
 
             const network = tx.from.toString() === caller.id ? tx.fromValue.token.network : tx.toValue.token.network;
-            const signature = await this.txService.getSignatureRefund(txId, caller.address, nonce, network);
+            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, network);
 
             res.status(200).json(signature);
         } catch (error) {

@@ -64,10 +64,16 @@
  *           type: string
  *         status:
  *           type: string
+ *         key:
+ *           type: string
  *         hashlock:
  *           type: string
- *         txId:
+ *         contractIdFrom:
  *           type: string
+ *           description: null if Transaction is Transfer
+ *         contractIdTo:
+ *           type: string
+ *           description: null if Transaction is Transfer or Exchange 1 chain
  * 
  * 
  * tags:
@@ -222,7 +228,7 @@
  *                 transactionType:
  *                      type: string
  *                      description: exchange or transfer
- *                 txId:
+ *                 contractIdFrom:
  *                      type: string
  *                      description: Id of the transaction in contract (only for exchange transaction)
  *              
@@ -282,10 +288,13 @@
  *             properties:
  *                 key:
  *                      type: string
- *                      description: key of the transaction the contract (only for exchange transaction)
+ *                      description: key of the transaction in the contract (only for exchange transaction)
  *                 hashlock:
  *                      type: string
- *                      description: hashlock for the transaction the contract (only for exchange transaction)
+ *                      description: hashlock for the transaction in the contract (only for exchange transaction)
+ *                 contractIdTo:
+ *                      type: string
+ *                      description: Id of the transaction in the contract (to)
  *     responses:
  *       200:
  *         description: accepted successfully.
@@ -391,6 +400,9 @@
  *                 status:
  *                      type: string
  *                      description: Only accept ['sender accepted', 'receiver withdrawn', 'completed']
+ *                 contractIdFrom:
+ *                      type: string
+ *                      description: update the contractIdFrom when status is updated as 'sender accepted'
  *     responses:
  *       200:
  *         description: updated successfully.
@@ -446,7 +458,7 @@
  *           schema:
  *             type: object
  *             properties:
- *                 txId:
+ *                 contractId:
  *                      type: string
  *                      description: Id of the transaction in smart contract
  *                 nonce:

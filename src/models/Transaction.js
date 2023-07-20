@@ -41,7 +41,8 @@ const transactionSchema = new mongoose.Schema({
     //timelock: {type: Number},
     key: {type: String},
     hashlock: {type: String},
-    txId: {type: String}
+    contractIdFrom: {type: String},
+    contractIdTo: {type: String},
 }, {
     timestamps: true
 })

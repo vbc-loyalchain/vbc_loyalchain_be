@@ -191,8 +191,7 @@ class TransactionService {
             fromTokenId,
             toValue, 
             toTokenId,
-            //timelock,
-            txId
+            contractIdFrom
         } = body;
         
         let newTransaction = await create(Transaction, {
@@ -208,8 +207,7 @@ class TransactionService {
             },
             transactionType: 'exchange',
             status: 'pending',
-            //timelock,
-            txId
+            contractIdFrom,
         });
 
         newTransaction = await newTransaction.populate([
@@ -224,21 +222,21 @@ class TransactionService {
 
     /**
      * @param {string} txId - Id of the transaction in database
-     * @param {string} key - secret key for tx
-     * @param {string} hashlock - Hash of the secret key for tx
+     * @param {object} dto - Data to be updated
      * @param {object} receiver - request's sender (receiver)
      */
-    acceptExchangeTx = async (txId, key, hashlock, receiver) => {
+    acceptExchangeTx = async (txId, dto, receiver) => {
+        const {key, hashlock, contractIdTo} = dto;
         let tx = await getById(Transaction, txId);
         tx = await tx.populate([
             {path: 'fromValue.token', select: 'network'},
             {path: 'toValue.token', select: 'network'}
         ])
 
-        if(tx.fromValue.token.network !== tx.toValue.token.network && (!hashlock || !key)) {
+        if(tx.fromValue.token.network !== tx.toValue.token.network && (!hashlock || !key || !contractIdTo)) {
             throw {
                 statusCode: 400,
-                error: new Error("Hashlock and Key are required")
+                error: new Error("Hashlock, Key and contractIdTo are required")
             }
         }
 
@@ -262,7 +260,8 @@ class TransactionService {
             to: receiver.id,
             status: tx.fromValue.token.network === tx.toValue.token.network ? 'completed' : 'receiver accepted',
             key,
-            hashlock
+            hashlock,
+            contractIdTo
         };
 
         const updatedTx = await this.updateTx(txId, updateObj);
