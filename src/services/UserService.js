@@ -18,7 +18,7 @@ class UserService {
             toValueDown,
 
             transactionType,
-            inProgress,
+            status,
             page
         } = dto;
 
@@ -43,16 +43,25 @@ class UserService {
 
         if(fromTokenId) filterQuery['fromValue.token'] = fromTokenId;
         if(toTokenId) filterQuery['toValue.token'] = toTokenId;
-        if(inProgress) {
-            filterQuery['status'] = {
-                $in: ['pending', 'receiver accepted', 'sender accepted', 'receiver withdrawn']
-            }
+
+        switch(status) {
+            case 0: 
+                filterQuery['status'] = 'pending';
+                break;
+            case 1: 
+                filterQuery['status'] = {
+                    $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+                };
+                break;
+            case 2:
+                filterQuery['status'] = 'completed';
         }
+        
         const options = {
             skip: (page - 1) * PAGE_SIZE,
             limit: PAGE_SIZE,
             sort: {
-                createdAt: -1
+                updatedAt: -1
             }
         };
 

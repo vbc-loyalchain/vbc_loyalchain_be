@@ -48,7 +48,7 @@ const get_myTx_schema = Joi.object({
     toValueDown: Joi.number().min(0).default(0),
 
     transactionType: Joi.string().valid('all', 'transfer', 'exchange').default('all'),
-    inProgress: Joi.boolean(),
+    status: Joi.number(),
     page: Joi.number().min(1).default(1)
 })
 
