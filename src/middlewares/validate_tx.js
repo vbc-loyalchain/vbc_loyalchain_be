@@ -5,7 +5,7 @@ import {
     get_exchangeTx_schema, 
     get_myTx_schema,
     update_exchangeTxStatus_schema,
-    sigForRefund_tx_schema
+    sigForRefund_tx_schema,
 } from "./schemas";
 
 const validate_create_tx = validate_input(create_tx_schema);
@@ -21,5 +21,5 @@ export {
     validate_get_exchangeTx,
     validate_get_myTx,
     validate_updateExchangeTxStatus,
-    validate_sigForRefundTx
+    validate_sigForRefundTx,
 }

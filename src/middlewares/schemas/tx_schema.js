@@ -15,13 +15,10 @@ const create_tx_schema = Joi.object({
     toTokenId: Joi.string().required().pattern(new RegExp('^[0-9a-fA-F]{24}$')),
 
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
-    contractIdFrom: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{64}$')),
 })
 
 const accept_tx_schema = Joi.object({
-    key: Joi.string(),
     hashlock: Joi.string(),
-    contractIdTo: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{64}$'))
 })
 
 //get all exchange transactions in the market place
@@ -54,11 +51,9 @@ const get_myTx_schema = Joi.object({
 
 const update_exchangeTxStatus_schema = Joi.object({
     status: Joi.string().required().valid('sender accepted', 'receiver withdrawn', 'completed'),
-    contractIdFrom: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{64}$'))
 })
 
 const sigForRefund_tx_schema = Joi.object({
-    contractId: Joi.string().required(),
     nonce: Joi.number().required().min(0)
 })
 
@@ -68,5 +63,5 @@ export {
     get_exchangeTx_schema,
     get_myTx_schema,
     update_exchangeTxStatus_schema,
-    sigForRefund_tx_schema
+    sigForRefund_tx_schema,
 }
