@@ -269,25 +269,25 @@ class TransactionController {
                 return next(new Error('You are not the sender or receiver of this transaction'));
             }
 
-            switch(tx.status) {
-                case 'receiver accepted':
-                    if(tx.to.address !== caller.address) {
-                        res.status(403);
-                        return next(new Error('Now only receiver can refund transaction'));
-                    }
-                    break;
-                case 'sender accepted':
-                    break;
-                case 'canceled':
-                    break;
-                default:
-                    res.status(403);
-                    return next(new Error('Cannot refund from the transaction'));
+            if(['pending', 'receiver withdrawn', 'completed'].includes(tx.status)) {
+                res.status(403);
+                return next(new Error('Cannot refund from the transaction'));
             }
 
-            const network = tx.from.toString() === caller.id ? tx.fromValue.token.network : tx.toValue.token.network;
-            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address, network);
-            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, network);
+            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address);
+
+            let senderNetwork, receiverNetwork;
+
+            if(caller.address === tx.from.address) {
+                senderNetwork = tx.fromValue.token.network;
+                receiverNetwork = tx.toValue.token.network;
+            }
+            else {
+                senderNetwork = tx.toValue.token.network;
+                receiverNetwork = tx.fromValue.token.network;
+            }
+
+            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, senderNetwork, receiverNetwork);
 
             res.status(200).json(signature);
         } catch (error) {
