@@ -64,11 +64,7 @@
  *           type: string
  *         status:
  *           type: string
- *         timelock:
- *           type: number
  *         hashlock:
- *           type: string
- *         txId:
  *           type: string
  * 
  * 
@@ -224,12 +220,6 @@
  *                 transactionType:
  *                      type: string
  *                      description: exchange or transfer
- *                 timelock:
- *                      type: number
- *                      description: time lock in the contract (only for exchange transaction)
- *                 txId:
- *                      type: string
- *                      description: Id of the transaction in contract (only for exchange transaction)
  *              
  *     responses:
  *       201:
@@ -267,6 +257,55 @@
  *                     type: string
  *                     example: "Error..."
  * 
+ * /api/transactions/{txId}/secretKey:
+ *   get:
+ *     summary: Get the secretKey of the Lock contract
+ *     tags: [Transaction]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: txId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: "abc.."
+ *       400:
+ *         description: Get secret key failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Invalid credentials"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ *       401:
+ *          $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         description: Get secret key failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                  stack:
+ *                     type: string
+ *                     example: "Error..."
+ * 
  * /api/transactions/{txId}/accept:
  *   patch:
  *     summary: accept a exchange transaction
@@ -287,7 +326,7 @@
  *             properties:
  *                 hashlock:
  *                      type: string
- *                      description: hashlock for the transaction the contract (only for exchange transaction)
+ *                      description: hashlock for the transaction in the contract (only for exchange transaction)
  *     responses:
  *       200:
  *         description: accepted successfully.
@@ -448,9 +487,6 @@
  *           schema:
  *             type: object
  *             properties:
- *                 txId:
- *                      type: string
- *                      description: Id of the transaction in smart contract
  *                 nonce:
  *                      type: number
  *     responses:
@@ -489,6 +525,7 @@
  *                  stack:
  *                     type: string
  *                     example: "Error..."
+ * 
  */
 
 import express from 'express'
@@ -498,7 +535,7 @@ import {
     validate_accept_tx,
     validate_get_exchangeTx, 
     validate_updateExchangeTxStatus,
-    validate_sigForRefundTx
+    validate_sigForRefundTx,
 } from '../middlewares/validate_tx.js'
 import { verifyToken } from '../middlewares/authMiddleware.js'
 
@@ -515,6 +552,9 @@ router.get('/rate/:tokenId1/:tokenId2', txController.getExchangeRate)
 
 //create a new transaction
 router.post('/create', verifyToken, validate_create_tx, txController.createNewTransaction)
+
+//update exchange transaction when another user accept the transaction
+router.get('/:txId/secretKey', verifyToken, txController.getSecretKey)
 
 //update exchange transaction when another user accept the transaction
 router.patch('/:txId/accept', verifyToken, validate_accept_tx, txController.acceptExchangeTx)

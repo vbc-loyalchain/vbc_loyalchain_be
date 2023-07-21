@@ -190,9 +190,7 @@ class TransactionService {
             fromValue,
             fromTokenId,
             toValue, 
-            toTokenId,
-            timelock,
-            txId
+            toTokenId
         } = body;
         
         let newTransaction = await create(Transaction, {
@@ -208,8 +206,6 @@ class TransactionService {
             },
             transactionType: 'exchange',
             status: 'pending',
-            timelock,
-            txId
         });
 
         newTransaction = await newTransaction.populate([
@@ -224,11 +220,19 @@ class TransactionService {
 
     /**
      * @param {string} txId - Id of the transaction in database
-     * @param {string} hashlock - Hash of the secret key for tx
+     * @param {string} hashlock - Hashlock of the transaction key
      * @param {object} receiver - request's sender (receiver)
      */
     acceptExchangeTx = async (txId, hashlock, receiver) => {
         let tx = await getById(Transaction, txId);
+
+        if(!tx) {
+            throw {
+                statusCode: 400,
+                error: new Error("Transaction not found")
+            }
+        }
+
         tx = await tx.populate([
             {path: 'fromValue.token', select: 'network'},
             {path: 'toValue.token', select: 'network'}
@@ -263,7 +267,7 @@ class TransactionService {
             hashlock,
         };
 
-        const updatedTx = await this.updateTx(txId, updateObj)
+        const updatedTx = await this.updateTx(txId, updateObj);
 
         return updatedTx;
     }
@@ -275,6 +279,13 @@ class TransactionService {
      */
     cancelExchangeTx = async (txId, sender) => {
         let tx = await getById(Transaction, txId);
+
+        if(!tx) {
+            throw {
+                statusCode: 400,
+                error: new Error("Transaction not found")
+            }
+        }
 
         //check whether the transaction has been cancelled or completed
         if(tx.status === 'completed' || tx.status === 'canceled' || tx.status === 'receiver withdrawn')
@@ -330,21 +341,12 @@ class TransactionService {
         const provider = providers[network];
         const SCA = SwapTwoChainContract[network];
 
-        const isEndLock = await provider.callFunc(SwapTwoChain.abi, SCA, 'isEndLockContract', [txId], callerAddress);
+        const isInProgress = await provider.callFunc(SwapTwoChain.abi, SCA, 'isInProgress', [txId], callerAddress)
 
-        if(!isEndLock) {
+        if(!isInProgress) {
             throw {
                 statusCode: 400,
-                error: new Error('Too early to refund from smart contract')
-            }
-        }
-
-        const refunded = await provider.callFunc(SwapTwoChain.abi, SCA, 'isRefunded', [txId], callerAddress)
-
-        if(refunded) {
-            throw {
-                statusCode: 400,
-                error: new Error('You have been refunded this transaction')
+                error: new Error('Cannot refund from the transaction that has been done')
             }
         }
 
@@ -366,11 +368,55 @@ class TransactionService {
                 type: "uint256",
                 value: nonce,
             }
-        ]
+        ];
 
         const signature = provider.signData(data, privateKey)
         return signature;
     };
+
+    /**
+     * @param {string} txId - id of the transaction in database 
+     * @param {string} from 
+     * @param {string} to 
+     * @param {number} network 
+     * @returns contractId in smart contract
+     */
+    getContractId = (txId, from, to, network) => {
+        const provider = providers[network];
+        const txIdHash = provider.WEB3.utils.keccak256(txId);
+
+        const contractId = provider.WEB3.utils.soliditySha3(
+            {
+                type: "bytes32",
+                value: txIdHash,
+            },
+            {
+                type: "address",
+                value: from,
+            },
+            {
+                type: "address",
+                value: to,
+            }
+        );
+
+        return contractId;
+    }
+
+    /**
+     * @param {string} contractId - Id of the transaction in smart contract 
+     * @param {string} callerAddress 
+     * @param {number} network 
+     * @returns key of the transaction in smart contract
+     */
+    getSecretKey = async (contractId, callerAddress, network) => {
+        const provider = providers[network];
+        const SCA = SwapTwoChainContract[network];
+
+        const key = await provider.callFunc(SwapTwoChain.abi, SCA, 'getSecretKey', [contractId], callerAddress)
+
+        return key;
+    }
 }
 
 export default new TransactionService()

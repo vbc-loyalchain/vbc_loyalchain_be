@@ -38,9 +38,7 @@ const transactionSchema = new mongoose.Schema({
         default: 'created',
         required: true
     },
-    timelock: {type: Number},
     hashlock: {type: String},
-    txId: {type: String}
 }, {
     timestamps: true
 })

@@ -77,8 +77,6 @@ class TransactionController {
             toValue, 
             toTokenId,
             transactionType,
-            timelock,
-            txId // id of transaction in smart contract
         } = req.body;
 
         const user = req.user;
@@ -88,14 +86,14 @@ class TransactionController {
             return next(new Error('Invalid request body for transfer transaction'));
         }
 
-        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to || !timelock || !txId))  {
+        if(transactionType === 'exchange' && (fromTokenId === toTokenId || to)) {
             res.status(400);
             return next(new Error('Invalid request body for exchange transaction'));
         }
 
         const [fromToken, toToken] = await Promise.all([
             getById(Token, fromTokenId),
-            getById(Token, fromTokenId)
+            getById(Token, toTokenId)
         ])
 
         if(!fromToken || !toToken) {
@@ -118,8 +116,6 @@ class TransactionController {
                 newTransaction = await this.txService.createTransferTx(paramObj);
             }
             else{
-                paramObj['timelock'] = timelock;
-                paramObj['txId'] = txId;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);
@@ -128,15 +124,55 @@ class TransactionController {
         }
     }
 
+    //[GET] /api/transactions/:txId/secretKey
+    getSecretKey = async (req, res, next) => {
+        const {txId} = req.params;
+        const callerAddress = req.user.address;
+
+        try {
+            let tx = await getById(Transaction, txId);
+
+            if(!tx) {
+                res.status(400);
+                return next(new Error('Transaction not found'));
+            }
+
+            tx = await tx.populate([
+                {path: 'from', select: 'address'},
+                {path: 'to', select: 'address'},
+                {path: 'fromValue.token', select: 'network'},
+                {path: 'toValue.token', select: 'network'}
+            ]);
+
+            let network;
+            switch(callerAddress) {
+                case tx.from.address:
+                    network = tx.fromValue.token.network;
+                    break;
+                case tx.to.address:
+                    network = tx.toValue.token.network;
+                    break;
+                default:
+                    res.status(403);
+                    return next(new Error('You are not allowed to get secret key from this transaction!'));
+            }
+
+            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address, network);
+            const key = await this.txService.getSecretKey(contractId, callerAddress, network);
+            res.status(200).json(key);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     //[PATCH] /api/transactions/:txId/accept
     acceptExchangeTx = async (req, res, next) => {
         const {txId} = req.params;
-        const {hashlock} = req.body
         try {
-            const updatedTx = await this.txService.acceptExchangeTx(txId, hashlock, req.user);
+            const updatedTx = await this.txService.acceptExchangeTx(txId, req.body.hashlock, req.user);
             res.status(200).json({
                 updatedTx,
-                message: 'Transaction completed'
+                message: 'Accepted successfully'
             })
         } catch (error) {
             if(error.statusCode) {
@@ -167,9 +203,15 @@ class TransactionController {
     updateExchangeTxStatus = async (req, res, next) => {
         const {txId} = req.params;
         const caller = req.user;
-        const newStatus = req.body.status; 
+        const newStatus = req.body.status;
+        
         try {
             const tx = await getById(Transaction, txId);
+
+            if(!tx) {
+                res.status(400);
+                return next(new Error('Transaction not found'));
+            }
 
             switch(tx.status) {
                 case 'receiver accepted':
@@ -205,29 +247,31 @@ class TransactionController {
     //[POST] /api/transactions/:txId/sig/refund
     getSignatureForRefund = async (req, res, next) => {
         const caller = req.user;
-        const id = req.params.txId; //id: id of transaction in the database
-        const {txId, nonce} = req.body; //txId: id of transaction in blockchain
-
+        const {txId} = req.params; // id of transaction in the database
+        const {nonce} = req.body;
         try {
-            let tx = await getById(Transaction, id);
+            let tx = await getById(Transaction, txId);
+
+            if(!tx) {
+                res.status(400);
+                return next(new Error('Transaction not found'));
+            }
+
             tx = await tx.populate([
+                {path: 'from', select: 'address'},
+                {path: 'to', select: 'address'},
                 {path: 'fromValue.token', select: 'network'},
                 {path: 'toValue.token', select: 'network'}
-            ])
+            ]);
 
-            if(tx.from.toString() !== caller.id && tx.to.toString() !== caller.id) {
+            if(caller.address !== tx.from.address && caller.address !== tx.to.address) {
                 res.status(403);
                 return next(new Error('You are not the sender or receiver of this transaction'));
             }
 
-            if(tx.txId !== txId) {
-                res.status(400);
-                return next(new Error('Invalid transaction information'));
-            }
-
             switch(tx.status) {
                 case 'receiver accepted':
-                    if(tx.to.toString() !== caller.id) {
+                    if(tx.to.address !== caller.address) {
                         res.status(403);
                         return next(new Error('Now only receiver can refund transaction'));
                     }
@@ -242,7 +286,8 @@ class TransactionController {
             }
 
             const network = tx.from.toString() === caller.id ? tx.fromValue.token.network : tx.toValue.token.network;
-            const signature = await this.txService.getSignatureRefund(txId, caller.address, nonce, network);
+            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address, network);
+            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, network);
 
             res.status(200).json(signature);
         } catch (error) {
