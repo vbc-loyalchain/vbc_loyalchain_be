@@ -274,9 +274,20 @@ class TransactionController {
                 return next(new Error('Cannot refund from the transaction'));
             }
 
-            const network = tx.from.toString() === caller.id ? tx.fromValue.token.network : tx.toValue.token.network;
-            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address, network);
-            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, network);
+            const contractId = this.txService.getContractId(txId, tx.from.address, tx.to.address);
+
+            let senderNetwork, receiverNetwork;
+
+            if(caller.address === tx.from.address) {
+                senderNetwork = tx.fromValue.token.network;
+                receiverNetwork = tx.toValue.token.network;
+            }
+            else {
+                senderNetwork = tx.toValue.token.network;
+                receiverNetwork = tx.fromValue.token.network;
+            }
+
+            const signature = await this.txService.getSignatureRefund(contractId, caller.address, nonce, senderNetwork, receiverNetwork);
 
             res.status(200).json(signature);
         } catch (error) {

@@ -332,21 +332,52 @@ class TransactionService {
     }
 
     /**
-     * @param {*} txId - Id of the transaction in Blockchain
+     * @param {*} contractId - Id of the transaction in Blockchain
      * @param {*} callerAddress - Address of the caller who made this request 
      * @param {*} nonce - current nonce of the caller account
-     * @param {*} network - network of the SwapTwoChain contract which was deployed
+     * @param {*} senderNetwork - network of the SwapTwoChain contract which caller created
+     * @param {*} receiverNetwork - network of the SwapTwoChain contract which the other created
      */
-    getSignatureRefund = async (txId, callerAddress, nonce, network) => {
-        const provider = providers[network];
-        const SCA = SwapTwoChainContract[network];
+    getSignatureRefund = async (contractId, callerAddress, nonce, senderNetwork, receiverNetwork) => {
+        //console.log(contractId)
+        const sender_provider = providers[senderNetwork];
+        const sender_SCA = SwapTwoChainContract[senderNetwork];
 
-        const isInProgress = await provider.callFunc(SwapTwoChain.abi, SCA, 'isInProgress', [txId], callerAddress)
+        const receiver_provider = providers[receiverNetwork];
+        const receiver_SCA = SwapTwoChainContract[receiverNetwork];
 
-        if(!isInProgress) {
+        const timelock = await sender_provider.callFunc(SwapTwoChain.abi, sender_SCA, 'getTimelock', [contractId], callerAddress);
+
+        if(parseInt(timelock) >= Math.floor(Date.now() / 1000)) {
+            throw {
+                statusCode: 400,
+                error: new Error('Too early to refund')
+            }
+        }
+
+        const sender_order_status = await sender_provider.callFunc(SwapTwoChain.abi, sender_SCA, 'getStatus', [contractId], callerAddress);
+
+        if(sender_order_status !== '0') {
             throw {
                 statusCode: 400,
                 error: new Error('Cannot refund from the transaction which was refunded or withdrawn')
+            }
+        }
+
+        let receiverWithdrawn = false;
+        try {
+            const receiver_order_status = await receiver_provider.callFunc(SwapTwoChain.abi, receiver_SCA, 'getStatus', [contractId], callerAddress);
+            if(receiver_order_status === '1') {
+                receiverWithdrawn =  true;
+            }
+        } catch (error) {
+            //console.log(error);
+        }
+
+        if(receiverWithdrawn) {
+            throw {
+                statusCode: 400,
+                error: new Error('Cannot refund from the transaction because you have been withdrawn from the other')
             }
         }
 
@@ -357,8 +388,8 @@ class TransactionService {
 
         const data = [
             {
-                type: "string",
-                value: txId,
+                type: "bytes32",
+                value: contractId,
             },
             {
                 type: "address",
@@ -370,7 +401,7 @@ class TransactionService {
             }
         ];
 
-        const signature = provider.signData(data, privateKey)
+        const signature = sender_provider.signData(data, privateKey)
         return signature;
     };
 
@@ -381,8 +412,8 @@ class TransactionService {
      * @param {number} network 
      * @returns contractId in smart contract
      */
-    getContractId = (txId, from, to, network) => {
-        const provider = providers[network];
+    getContractId = (txId, from, to) => {
+        const provider = providers[4444];
         const txIdHash = provider.WEB3.utils.keccak256(txId);
 
         const contractId = provider.WEB3.utils.soliditySha3(
