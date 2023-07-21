@@ -288,7 +288,7 @@ class TransactionService {
         }
 
         //check whether the transaction has been cancelled or completed
-        if(tx.status === 'completed' || tx.status === 'canceled' || tx.status === 'receiver withdrawn')
+        if(tx.status === 'completed' || tx.status === 'sender cancelled' || tx.status === 'receiver cancelled' || tx.status === 'receiver withdrawn')
             throw {
                 statusCode: 400,
                 error: new Error("Can't cancel a transaction that is in progress or has been done")
@@ -310,7 +310,7 @@ class TransactionService {
             }
                    
         const updatedTx = await this.updateTx(txId, {
-            status: 'canceled'
+            status: sender.id === tx.from.toString() ? 'sender cancelled' : 'receiver cancelled'
         })
 
         return updatedTx;
@@ -346,7 +346,7 @@ class TransactionService {
         if(!isInProgress) {
             throw {
                 statusCode: 400,
-                error: new Error('Cannot refund from the transaction that has been done')
+                error: new Error('Cannot refund from the transaction which was refunded or withdrawn')
             }
         }
 

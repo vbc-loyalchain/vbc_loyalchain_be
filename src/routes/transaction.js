@@ -261,14 +261,34 @@
  *   get:
  *     summary: Get the secretKey of the Lock contract
  *     tags: [Transaction]
+ *     tags: [Transaction]
+ *     tags: [Transaction]
+ *     security:
+ *     security:
  *     security:
  *       - bearerAuth: []
+ *       - bearerAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *     parameters:
  *     parameters:
  *       - in: path
+ *       - in: path
+ *       - in: path
+ *         name: txId
+ *         name: txId
  *         name: txId
  *         schema:
+ *         schema:
+ *         schema:
+ *           type: string
+ *           type: string
  *           type: string
  *         required: true
+ *         required: true
+ *         required: true
+ *     responses:
+ *     responses:
  *     responses:
  *       200:
  *         description: updated successfully.
