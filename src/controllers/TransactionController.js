@@ -77,6 +77,7 @@ class TransactionController {
             toValue, 
             toTokenId,
             transactionType,
+            contractId
         } = req.body;
 
         const user = req.user;
@@ -101,6 +102,11 @@ class TransactionController {
             return next(new Error('Invalid token'));
         }
 
+        if(fromToken.network === toToken.network && !contractId) {
+            res.status(400);
+            return next(new Error('contractId is required for 1 chain exchange'));
+        }
+
         try {
             let newTransaction;
             const paramObj = {
@@ -116,6 +122,7 @@ class TransactionController {
                 newTransaction = await this.txService.createTransferTx(paramObj);
             }
             else{
+                paramObj['contractId'] = contractId;
                 newTransaction = await this.txService.createExchangeTx(paramObj);
             }
             res.status(201).json(newTransaction);

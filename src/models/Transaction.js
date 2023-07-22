@@ -39,6 +39,7 @@ const transactionSchema = new mongoose.Schema({
         required: true
     },
     hashlock: {type: String},
+    contractId: {type: String}
 }, {
     timestamps: true
 })
