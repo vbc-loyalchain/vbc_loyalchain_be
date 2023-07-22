@@ -341,25 +341,23 @@ class TransactionService {
      * @param {*} receiverNetwork - network of the SwapTwoChain contract which the other created
      */
     getSignatureRefund = async (contractId, callerAddress, nonce, senderNetwork, receiverNetwork) => {
-        //console.log(contractId)
+        console.log(contractId)
         const sender_provider = providers[senderNetwork];
         const sender_SCA = SwapTwoChainContract[senderNetwork];
 
         const receiver_provider = providers[receiverNetwork];
         const receiver_SCA = SwapTwoChainContract[receiverNetwork];
 
-        const timelock = await sender_provider.callFunc(SwapTwoChain.abi, sender_SCA, 'getTimelock', [contractId], callerAddress);
-
-        if(parseInt(timelock) >= Math.floor(Date.now() / 1000)) {
+        const senderOrder = await sender_provider.callFunc(SwapTwoChain.abi, sender_SCA, 'transactions', [contractId], callerAddress);
+        
+        if(parseInt(senderOrder.timelock) >= Math.floor(Date.now() / 1000)) {
             throw {
                 statusCode: 400,
                 error: new Error('Too early to refund')
             }
         }
 
-        const sender_order_status = await sender_provider.callFunc(SwapTwoChain.abi, sender_SCA, 'getStatus', [contractId], callerAddress);
-
-        if(sender_order_status !== '0') {
+        if(senderOrder.status !== '0') {
             throw {
                 statusCode: 400,
                 error: new Error('Cannot refund from the transaction which was refunded or withdrawn')
@@ -368,8 +366,8 @@ class TransactionService {
 
         let receiverWithdrawn = false;
         try {
-            const receiver_order_status = await receiver_provider.callFunc(SwapTwoChain.abi, receiver_SCA, 'getStatus', [contractId], callerAddress);
-            if(receiver_order_status === '1') {
+            const receiverOrder = await receiver_provider.callFunc(SwapTwoChain.abi, receiver_SCA, 'transactions', [contractId], callerAddress);
+            if(receiverOrder.status === '1') {
                 receiverWithdrawn =  true;
             }
         } catch (error) {
@@ -446,9 +444,9 @@ class TransactionService {
         const provider = providers[network];
         const SCA = SwapTwoChainContract[network];
 
-        const key = await provider.callFunc(SwapTwoChain.abi, SCA, 'getSecretKey', [contractId], callerAddress)
+        const data = await provider.callFunc(SwapTwoChain.abi, SCA, 'transactions', [contractId], callerAddress)
 
-        return key;
+        return data.key; //key
     }
 }
 
