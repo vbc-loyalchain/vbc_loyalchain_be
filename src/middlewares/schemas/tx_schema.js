@@ -15,6 +15,7 @@ const create_tx_schema = Joi.object({
     toTokenId: Joi.string().required().pattern(new RegExp('^[0-9a-fA-F]{24}$')),
 
     transactionType: Joi.string().required().valid('transfer', 'exchange'),
+    contractId: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{64}$')),
 })
 
 const accept_tx_schema = Joi.object({

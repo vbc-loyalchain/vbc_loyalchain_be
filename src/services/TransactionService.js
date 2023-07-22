@@ -190,7 +190,8 @@ class TransactionService {
             fromValue,
             fromTokenId,
             toValue, 
-            toTokenId
+            toTokenId,
+            contractId
         } = body;
         
         let newTransaction = await create(Transaction, {
@@ -206,6 +207,7 @@ class TransactionService {
             },
             transactionType: 'exchange',
             status: 'pending',
+            contractId
         });
 
         newTransaction = await newTransaction.populate([

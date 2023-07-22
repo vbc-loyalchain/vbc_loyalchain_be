@@ -66,6 +66,8 @@
  *           type: string
  *         hashlock:
  *           type: string
+ *         contractId:
+ *           type: string
  * 
  * 
  * tags:
@@ -220,6 +222,9 @@
  *                 transactionType:
  *                      type: string
  *                      description: exchange or transfer
+ *                 contractId:
+ *                      type: string
+ *                      description: optional (1 chain)
  *              
  *     responses:
  *       201:
