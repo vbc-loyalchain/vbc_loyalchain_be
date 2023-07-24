@@ -8,7 +8,7 @@ import Joi from "joi";
 const create_tx_schema = Joi.object({
     to: Joi.string().pattern(new RegExp('^(0x)[0-9|a-f|A-F]{40}$')),
 
-    fromValue: Joi.number().required().min(1),
+    fromValue: Joi.number().required().greater(0),
     fromTokenId: Joi.string().required().pattern(new RegExp('^[0-9a-fA-F]{24}$')),
 
     toValue: Joi.number().required().min(0),
