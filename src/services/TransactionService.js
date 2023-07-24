@@ -329,7 +329,7 @@ class TransactionService {
             updateObj['status'] = 'cancelled';
         }
         else {
-            if(tx.status === 'sender cancelled' || tx.status === 'receiver cancelled'){
+            if(['sender cancelled', 'receiver cancelled', 'pending'].includes(tx.status)){
                 updateObj['status'] = 'cancelled';
             }
             else {
