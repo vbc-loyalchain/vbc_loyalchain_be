@@ -102,7 +102,7 @@ class TransactionController {
             return next(new Error('Invalid token'));
         }
 
-        if(fromToken.network === toToken.network && !contractId) {
+        if(transactionType === 'exchange' && fromToken.network === toToken.network && !contractId) {
             res.status(400);
             return next(new Error('contractId is required for 1 chain exchange'));
         }
