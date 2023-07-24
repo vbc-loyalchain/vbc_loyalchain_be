@@ -50,7 +50,7 @@ class UserService {
                 break;
             case 1: 
                 filterQuery['status'] = {
-                    $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn']
+                    $in: ['receiver accepted', 'sender accepted', 'receiver withdrawn', 'sender cancelled', 'receiver cancelled']
                 };
                 break;
             case 2:

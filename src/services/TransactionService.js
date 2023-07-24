@@ -290,17 +290,24 @@ class TransactionService {
         }
 
         //check whether the transaction has been cancelled or completed
-        if(tx.status === 'completed' || tx.status === 'sender cancelled' || tx.status === 'receiver cancelled' || tx.status === 'receiver withdrawn')
+        if(['receiver withdrawn', 'completed', 'cancelled'].includes(tx.status))
             throw {
                 statusCode: 400,
                 error: new Error("Can't cancel a transaction that is in progress or has been done")
             }
         
         //if status is pending, only owner can cancel this transaction
-        if(tx.status === 'pending' && tx.from.toString() !== sender.id)
+        if(['pending', 'receiver cancelled'].includes(tx.status) && tx.from.toString() !== sender.id)
             throw {
                 statusCode: 400,
-                error: new Error("Only owner can cancel this transaction")
+                error: new Error("Now only owner can cancel this transaction")
+            }
+
+        //if status is sender cancelled, only receiver can cancel this transaction
+        if(tx.status === 'sender cancelled' && tx.to.toString() !== sender.id)
+            throw {
+                statusCode: 400,
+                error: new Error("Now only receiver can cancel this transaction")
             }
 
         //if status is waiting for receiver, only receiver can cancel
@@ -310,10 +317,27 @@ class TransactionService {
                 statusCode: 400,
                 error: new Error("Now only owner and receiver can cancel this transaction")
             }
+
+        tx = await tx.populate([
+            {path: 'fromValue.token', select: 'network'},
+            {path: 'toValue.token', select: 'network'}
+        ])
+
+        let updateObj = {}
+
+        if(tx.fromValue.token.network === tx.toValue.token.network) {
+            updateObj['status'] = 'cancelled';
+        }
+        else {
+            if(tx.status === 'sender cancelled' || tx.status === 'receiver cancelled'){
+                updateObj['status'] = 'cancelled';
+            }
+            else {
+                updateObj['status'] = sender.id === tx.from.toString() ? 'sender cancelled' : 'receiver cancelled';
+            }
+        }
                    
-        const updatedTx = await this.updateTx(txId, {
-            status: sender.id === tx.from.toString() ? 'sender cancelled' : 'receiver cancelled'
-        })
+        const updatedTx = await this.updateTx(txId, updateObj);
 
         return updatedTx;
     }

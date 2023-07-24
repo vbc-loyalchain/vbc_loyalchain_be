@@ -34,7 +34,7 @@ const transactionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'receiver accepted', 'sender accepted', 'receiver withdrawn', 'completed', 'sender cancelled', 'receiver cancelled'],
+        enum: ['pending', 'receiver accepted', 'sender accepted', 'receiver withdrawn', 'completed', 'sender cancelled', 'receiver cancelled', 'cancelled'],
         default: 'created',
         required: true
     },
