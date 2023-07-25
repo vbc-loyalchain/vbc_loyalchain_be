@@ -1,12 +1,12 @@
 import CryptoJS from "crypto-js";
 import dotenv from 'dotenv';
-import {create, getById, getOne, getAllBeforePopulate, updateEntryById} from '../repositories'
-import Transaction from "../models/Transaction"
-import User from '../models/User';
-import providers from '../config/providers';
+import {create, getById, getOne, getAllBeforePopulate, updateEntryById} from '../repositories/index.js'
+import Transaction from "../models/Transaction.js"
+import User from '../models/User.js';
+import providers from '../config/providers.js';
 import mongoose from 'mongoose';
-import {SwapTwoChainContract} from '../config/variables';
-import {SwapTwoChain} from '../config/contract/SwapTwoChain';
+import {SwapTwoChainContract} from '../config/variables/index.js';
+import {SwapTwoChain} from '../config/contract/SwapTwoChain.js';
 dotenv.config();
 
 const PAGE_SIZE = 12;

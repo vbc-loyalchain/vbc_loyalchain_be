@@ -1,9 +1,9 @@
-import NFT from "../models/NFT";
-import Token from "../models/Token";
-import { create, getAllBeforePopulate, getById, getOne, updateEntryById } from "../repositories";
-import providers from "../config/providers";
-import {ERC20TokenContract} from '../config/contract/ERC20Token';
-import {ERC721NftContract} from '../config/contract/ERC721Nft';
+import NFT from "../models/NFT.js";
+import Token from "../models/Token.js";
+import { create, getAllBeforePopulate, getById, getOne, updateEntryById } from "../repositories/index.js";
+import providers from "../config/providers.js";
+import {ERC20TokenContract} from '../config/contract/ERC20Token.js';
+import {ERC721NftContract} from '../config/contract/ERC721Nft.js';
 
 const PAGE_SIZE = 12;
 

@@ -1,6 +1,6 @@
-import express from 'express'
-import eController from '../controllers/EnterpriseController'
-import { validate_enterprise } from '../middlewares'
+import express from 'express';
+import eController from '../controllers/EnterpriseController.js';
+import { validate_enterprise } from '../middlewares/index.js';
 
 const router = express.Router()
 

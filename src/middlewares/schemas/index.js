@@ -1,3 +1,3 @@
-export * from './acc_schema'
-export * from './enterprise_schema'
-export * from './tx_schema'
+export * from './acc_schema.js'
+export * from './enterprise_schema.js'
+export * from './tx_schema.js'
