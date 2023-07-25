@@ -18,6 +18,7 @@ app.use(express.urlencoded({extended: true}))
 app.use(morgan('combined'))
 app.use(cors({
     origin: [
+        process.env.FRONTEND_HOST,
         'http://localhost:3000',
     ],
     credentials: true
