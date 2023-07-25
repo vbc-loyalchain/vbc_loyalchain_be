@@ -1,8 +1,8 @@
-import User from "../models/User";
-import { generateAccessToken, generateRefreshToken } from "../utils/token";
-import { getOne, create } from "../repositories";
+import User from "../models/User.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import { getOne, create } from "../repositories/index.js";
 import jwt from "jsonwebtoken";
-import providers from '../config/providers';
+import providers from '../config/providers.js';
 const providerDefault = providers[4444];
 
 class AuthService {

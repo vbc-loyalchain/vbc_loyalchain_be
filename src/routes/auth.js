@@ -153,8 +153,8 @@
  */
 
 import express from 'express'
-import authController from '../controllers/AuthController'
-import { validate_login } from '../middlewares'
+import authController from '../controllers/AuthController.js'
+import { validate_login } from '../middlewares/index.js'
 
 const router = express.Router()
 

@@ -1,6 +1,6 @@
-import { getAllBeforePopulate } from "../repositories";
-import NFT from "../models/NFT";
-import Transaction from "../models/Transaction";
+import { getAllBeforePopulate } from "../repositories/index.js";
+import NFT from "../models/NFT.js";
+import Transaction from "../models/Transaction.js";
 import mongoose from "mongoose";
 
 const PAGE_SIZE = 12;

@@ -1,4 +1,4 @@
-import eService from "../services/EnterpriseService";
+import eService from "../services/EnterpriseService.js";
 
 class EnterpriseController {
     constructor(eService) {

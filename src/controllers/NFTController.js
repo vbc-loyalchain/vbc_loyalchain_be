@@ -1,4 +1,4 @@
-import nftService from "../services/NFTService";
+import nftService from "../services/NFTService.js";
 
 class NFTController {
     constructor(nftService) {

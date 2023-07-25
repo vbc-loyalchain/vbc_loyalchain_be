@@ -1,6 +1,6 @@
-import {create, getAll} from '../repositories/crud';
-import Token from '../models/Token';
-import redisClient from '../config/redis';
+import {create, getAll} from '../repositories/index.js';
+import Token from '../models/Token.js';
+import redisClient from '../config/redis.js';
 
 class EnterpriseService {
     createNewEnterprise = async (body) => {

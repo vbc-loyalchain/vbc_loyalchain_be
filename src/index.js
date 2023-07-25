@@ -5,7 +5,7 @@ import morgan from 'morgan'
 import dotenv from 'dotenv'
 import { connectApp } from './config/index.js'
 import route from './routes/index.js'
-import { notFound, errorHandler } from './middlewares'
+import { notFound, errorHandler } from './middlewares/index.js'
 import redisClient from './config/redis.js';
 import swagger from './config/swagger/index.js'
 
