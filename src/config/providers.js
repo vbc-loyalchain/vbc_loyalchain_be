@@ -1,4 +1,4 @@
-import BlockchainService from "../services/blockchainService.js";
+import BlockchainService from "../services/BlockchainService.js";
 import blockchainNetwork from "./blockchainNetwork.js";
 
 export default {
